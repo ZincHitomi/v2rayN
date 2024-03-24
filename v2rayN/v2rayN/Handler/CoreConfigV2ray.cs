@@ -100,22 +100,22 @@ namespace v2rayN.Handler
             {
                 v2rayConfig.inbounds = new List<Inbounds4Ray>();
 
-                Inbounds4Ray? inbound = GetInbound(_config.inbound[0], Global.InboundSocks, 0, true);
+                Inbounds4Ray? inbound = GetInbound(_config.inbound[0], EInboundProtocol.socks, true);
                 v2rayConfig.inbounds.Add(inbound);
 
                 //http
-                Inbounds4Ray? inbound2 = GetInbound(_config.inbound[0], Global.InboundHttp, 1, false);
+                Inbounds4Ray? inbound2 = GetInbound(_config.inbound[0], EInboundProtocol.http, false);
                 v2rayConfig.inbounds.Add(inbound2);
 
                 if (_config.inbound[0].allowLANConn)
                 {
                     if (_config.inbound[0].newPort4LAN)
                     {
-                        Inbounds4Ray inbound3 = GetInbound(_config.inbound[0], Global.InboundSocks2, 2, true);
+                        var inbound3 = GetInbound(_config.inbound[0], EInboundProtocol.socks2, true);
                         inbound3.listen = "0.0.0.0";
                         v2rayConfig.inbounds.Add(inbound3);
 
-                        Inbounds4Ray inbound4 = GetInbound(_config.inbound[0], Global.InboundHttp2, 3, false);
+                        var inbound4 = GetInbound(_config.inbound[0], EInboundProtocol.http2, false);
                         inbound4.listen = "0.0.0.0";
                         v2rayConfig.inbounds.Add(inbound4);
 
@@ -143,7 +143,7 @@ namespace v2rayN.Handler
             return 0;
         }
 
-        private Inbounds4Ray? GetInbound(InItem inItem, string tag, int offset, bool bSocks)
+        private Inbounds4Ray? GetInbound(InItem inItem, EInboundProtocol protocol, bool bSocks)
         {
             string result = Utile.GetEmbedText(Global.V2raySampleInbound);
             if (Utile.IsNullOrEmpty(result))
@@ -156,9 +156,9 @@ namespace v2rayN.Handler
             {
                 return null;
             }
-            inbound.tag = tag;
-            inbound.port = inItem.localPort + offset;
-            inbound.protocol = bSocks ? Global.InboundSocks : Global.InboundHttp;
+            inbound.tag = protocol.ToString();
+            inbound.port = inItem.localPort + (int)protocol;
+            inbound.protocol = bSocks ? EInboundProtocol.socks.ToString() : EInboundProtocol.http.ToString();
             inbound.settings.udp = inItem.udpEnabled;
             inbound.sniffing.enabled = inItem.sniffingEnabled;
             inbound.sniffing.routeOnly = inItem.routeOnly;
@@ -533,11 +533,11 @@ namespace v2rayN.Handler
                         alpn = node.GetAlpn(),
                         fingerprint = node.fingerprint.IsNullOrEmpty() ? _config.coreBasicItem.defFingerprint : node.fingerprint
                     };
-                    if (!string.IsNullOrWhiteSpace(sni))
+                    if (!Utile.IsNullOrEmpty(sni))
                     {
                         tlsSettings.serverName = sni;
                     }
-                    else if (!string.IsNullOrWhiteSpace(host))
+                    else if (!Utile.IsNullOrEmpty(host))
                     {
                         tlsSettings.serverName = Utile.String2List(host)[0];
                     }
@@ -564,7 +564,7 @@ namespace v2rayN.Handler
                 //streamSettings
                 switch (node.GetNetwork())
                 {
-                    case "kcp":
+                    case nameof(ETransport.kcp):
                         KcpSettings4Ray kcpSettings = new()
                         {
                             mtu = _config.kcpItem.mtu,
@@ -588,30 +588,45 @@ namespace v2rayN.Handler
                         streamSettings.kcpSettings = kcpSettings;
                         break;
                     //ws
-                    case "ws":
+                    case nameof(ETransport.ws):
                         WsSettings4Ray wsSettings = new();
                         wsSettings.headers = new Headers4Ray();
                         string path = node.path;
-                        if (!string.IsNullOrWhiteSpace(host))
+                        if (!Utile.IsNullOrEmpty(host))
                         {
                             wsSettings.headers.Host = host;
                         }
-                        if (!string.IsNullOrWhiteSpace(path))
+                        if (!Utile.IsNullOrEmpty(path))
                         {
                             wsSettings.path = path;
                         }
-                        if (!string.IsNullOrWhiteSpace(useragent))
+                        if (!Utile.IsNullOrEmpty(useragent))
                         {
                             wsSettings.headers.UserAgent = useragent;
                         }
                         streamSettings.wsSettings = wsSettings;
 
                         break;
+                    //httpupgrade
+                    case nameof(ETransport.httpupgrade):
+                        HttpupgradeSettings4Ray httpupgradeSettings = new();
+
+                        if (!Utile.IsNullOrEmpty(node.path))
+                        {
+                            httpupgradeSettings.path = node.path;
+                        }
+                        if (!Utile.IsNullOrEmpty(host))
+                        {
+                            httpupgradeSettings.host = host;
+                        }
+                        streamSettings.httpupgradeSettings = httpupgradeSettings;
+
+                        break;
                     //h2
-                    case "h2":
+                    case nameof(ETransport.h2):
                         HttpSettings4Ray httpSettings = new();
 
-                        if (!string.IsNullOrWhiteSpace(host))
+                        if (!Utile.IsNullOrEmpty(host))
                         {
                             httpSettings.host = Utile.String2List(host);
                         }
@@ -621,7 +636,7 @@ namespace v2rayN.Handler
 
                         break;
                     //quic
-                    case "quic":
+                    case nameof(ETransport.quic):
                         QuicSettings4Ray quicsettings = new()
                         {
                             security = host,
@@ -634,7 +649,7 @@ namespace v2rayN.Handler
                         streamSettings.quicSettings = quicsettings;
                         if (node.streamSecurity == Global.StreamSecurity)
                         {
-                            if (!string.IsNullOrWhiteSpace(sni))
+                            if (!Utile.IsNullOrEmpty(sni))
                             {
                                 streamSettings.tlsSettings.serverName = sni;
                             }
@@ -645,9 +660,10 @@ namespace v2rayN.Handler
                         }
                         break;
 
-                    case "grpc":
+                    case nameof(ETransport.grpc):
                         GrpcSettings4Ray grpcSettings = new()
                         {
+                            authority = Utile.IsNullOrEmpty(host) ? null : host,
                             serviceName = node.path,
                             multiMode = (node.headerType == Global.GrpcMultiMode),
                             idle_timeout = _config.grpcItem.idle_timeout,
@@ -706,13 +722,13 @@ namespace v2rayN.Handler
                 var item = LazyConfig.Instance.GetDNSItem(ECoreType.Xray);
                 var normalDNS = item?.normalDNS;
                 var domainStrategy4Freedom = item?.domainStrategy4Freedom;
-                if (string.IsNullOrWhiteSpace(normalDNS))
+                if (Utile.IsNullOrEmpty(normalDNS))
                 {
                     normalDNS = "1.1.1.1,8.8.8.8";
                 }
 
                 //Outbound Freedom domainStrategy
-                if (!string.IsNullOrWhiteSpace(domainStrategy4Freedom))
+                if (!Utile.IsNullOrEmpty(domainStrategy4Freedom))
                 {
                     var outbound = v2rayConfig.outbounds[1];
                     outbound.settings.domainStrategy = domainStrategy4Freedom;
@@ -764,7 +780,7 @@ namespace v2rayN.Handler
         {
             if (_config.guiItem.enableStatistics)
             {
-                string tag = Global.InboundAPITagName;
+                string tag = EInboundProtocol.api.ToString();
                 API4Ray apiObj = new();
                 Policy4Ray policyObj = new();
                 SystemPolicy4Ray policySystemSetting = new();
@@ -923,7 +939,7 @@ namespace v2rayN.Handler
                 v2rayConfig.inbounds.Clear(); // Remove "proxy" service for speedtest, avoiding port conflicts.
                 v2rayConfig.outbounds.RemoveAt(0);
 
-                int httpPort = LazyConfig.Instance.GetLocalPort("speedtest");
+                int httpPort = LazyConfig.Instance.GetLocalPort(EInboundProtocol.speedtest);
 
                 foreach (var it in selecteds)
                 {
@@ -975,9 +991,9 @@ namespace v2rayN.Handler
                     {
                         listen = Global.Loopback,
                         port = port,
-                        protocol = Global.InboundHttp
+                        protocol = EInboundProtocol.http.ToString(),
                     };
-                    inbound.tag = Global.InboundHttp + inbound.port.ToString();
+                    inbound.tag = inbound.protocol + inbound.port.ToString();
                     v2rayConfig.inbounds.Add(inbound);
 
                     //outbound

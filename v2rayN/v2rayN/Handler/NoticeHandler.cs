@@ -10,12 +10,14 @@ namespace v2rayN.Handler
         public NoticeHandler(ISnackbarMessageQueue snackbarMessageQueue)
         {
             _snackbarMessageQueue = snackbarMessageQueue ?? throw new ArgumentNullException(nameof(snackbarMessageQueue));
-
-            //_snackbarMessageQueue = snackbarMessageQueue;
         }
 
-        public void Enqueue(object content)
+        public void Enqueue(string content)
         {
+            if (content.IsNullOrEmpty())
+            {
+                return;
+            }
             _snackbarMessageQueue?.Enqueue(content);
         }
 
@@ -27,7 +29,13 @@ namespace v2rayN.Handler
         public void SendMessage(string msg, bool time)
         {
             msg = $"{DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss")} {msg}";
-            MessageBus.Current.SendMessage(msg, Global.CommandSendMsgView);
+            SendMessage(msg);
+        }
+
+        public void SendMessageAndEnqueue(string msg)
+        {
+            Enqueue(msg);
+            SendMessage(msg);
         }
     }
 }

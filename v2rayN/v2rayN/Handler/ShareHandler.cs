@@ -150,9 +150,9 @@ namespace v2rayN.Handler
             }
             else
             {
-                dicQuery.Add("encryption", "none");
+                dicQuery.Add("encryption", Global.None);
             }
-            GetStdTransport(item, "none", ref dicQuery);
+            GetStdTransport(item, Global.None, ref dicQuery);
             string query = "?" + string.Join("&", dicQuery.Select(x => x.Key + "=" + x.Value).ToArray());
 
             url = string.Format("{0}@{1}:{2}",
@@ -310,27 +310,28 @@ namespace v2rayN.Handler
                 dicQuery.Add("spx", Utile.UrlEncode(item.spiderX));
             }
 
-            dicQuery.Add("type", !Utile.IsNullOrEmpty(item.network) ? item.network : "tcp");
+            dicQuery.Add("type", !Utile.IsNullOrEmpty(item.network) ? item.network : nameof(ETransport.tcp));
 
             switch (item.network)
             {
-                case "tcp":
-                    dicQuery.Add("headerType", !Utile.IsNullOrEmpty(item.headerType) ? item.headerType : "none");
+                case nameof(ETransport.tcp):
+                    dicQuery.Add("headerType", !Utile.IsNullOrEmpty(item.headerType) ? item.headerType : Global.None);
                     if (!Utile.IsNullOrEmpty(item.requestHost))
                     {
                         dicQuery.Add("host", Utile.UrlEncode(item.requestHost));
                     }
                     break;
 
-                case "kcp":
-                    dicQuery.Add("headerType", !Utile.IsNullOrEmpty(item.headerType) ? item.headerType : "none");
+                case nameof(ETransport.kcp):
+                    dicQuery.Add("headerType", !Utile.IsNullOrEmpty(item.headerType) ? item.headerType : Global.None);
                     if (!Utile.IsNullOrEmpty(item.path))
                     {
                         dicQuery.Add("seed", Utile.UrlEncode(item.path));
                     }
                     break;
 
-                case "ws":
+                case nameof(ETransport.ws):
+                case nameof(ETransport.httpupgrade):
                     if (!Utile.IsNullOrEmpty(item.requestHost))
                     {
                         dicQuery.Add("host", Utile.UrlEncode(item.requestHost));
@@ -341,9 +342,9 @@ namespace v2rayN.Handler
                     }
                     break;
 
-                case "http":
-                case "h2":
-                    dicQuery["type"] = "http";
+                case nameof(ETransport.http):
+                case nameof(ETransport.h2):
+                    dicQuery["type"] = nameof(ETransport.http);
                     if (!Utile.IsNullOrEmpty(item.requestHost))
                     {
                         dicQuery.Add("host", Utile.UrlEncode(item.requestHost));
@@ -354,15 +355,16 @@ namespace v2rayN.Handler
                     }
                     break;
 
-                case "quic":
-                    dicQuery.Add("headerType", !Utile.IsNullOrEmpty(item.headerType) ? item.headerType : "none");
+                case nameof(ETransport.quic):
+                    dicQuery.Add("headerType", !Utile.IsNullOrEmpty(item.headerType) ? item.headerType : Global.None);
                     dicQuery.Add("quicSecurity", Utile.UrlEncode(item.requestHost));
                     dicQuery.Add("key", Utile.UrlEncode(item.path));
                     break;
 
-                case "grpc":
+                case nameof(ETransport.grpc):
                     if (!Utile.IsNullOrEmpty(item.path))
                     {
+                        dicQuery.Add("authority", Utile.UrlEncode(item.requestHost));
                         dicQuery.Add("serviceName", Utile.UrlEncode(item.path));
                         if (item.headerType is Global.GrpcGunMode or Global.GrpcMultiMode)
                         {
@@ -587,11 +589,11 @@ namespace v2rayN.Handler
             }
             switch (i.streamSecurity)
             {
-                case "tls":
+                case Global.StreamSecurity:
                     break;
 
                 default:
-                    if (!string.IsNullOrWhiteSpace(i.streamSecurity))
+                    if (!Utile.IsNullOrEmpty(i.streamSecurity))
                         return null;
                     break;
             }
@@ -599,35 +601,36 @@ namespace v2rayN.Handler
             i.network = m.Groups["network"].Value;
             switch (i.network)
             {
-                case "tcp":
-                    string t1 = query["type"] ?? "none";
+                case nameof(ETransport.tcp):
+                    string t1 = query["type"] ?? Global.None;
                     i.headerType = t1;
                     break;
 
-                case "kcp":
-                    i.headerType = query["type"] ?? "none";
+                case nameof(ETransport.kcp):
+                    i.headerType = query["type"] ?? Global.None;
                     break;
 
-                case "ws":
+                case nameof(ETransport.ws):
+                case nameof(ETransport.httpupgrade):
                     string p1 = query["path"] ?? "/";
                     string h1 = query["host"] ?? "";
                     i.requestHost = Utile.UrlDecode(h1);
                     i.path = p1;
                     break;
 
-                case "http":
-                case "h2":
-                    i.network = "h2";
+                case nameof(ETransport.http):
+                case nameof(ETransport.h2):
+                    i.network = nameof(ETransport.h2);
                     string p2 = query["path"] ?? "/";
                     string h2 = query["host"] ?? "";
                     i.requestHost = Utile.UrlDecode(h2);
                     i.path = p2;
                     break;
 
-                case "quic":
-                    string s = query["security"] ?? "none";
+                case nameof(ETransport.quic):
+                    string s = query["security"] ?? Global.None;
                     string k = query["key"] ?? "";
-                    string t3 = query["type"] ?? "none";
+                    string t3 = query["type"] ?? Global.None;
                     i.headerType = t3;
                     i.requestHost = Utile.UrlDecode(s);
                     i.path = k;
@@ -686,13 +689,13 @@ namespace v2rayN.Handler
             if (queryParameters["plugin"] != null)
             {
                 //obfs-host exists
-                var obfsHost = queryParameters["plugin"].Split(';').FirstOrDefault(t => t.Contains("obfs-host"));
+                var obfsHost = queryParameters["plugin"]?.Split(';').FirstOrDefault(t => t.Contains("obfs-host"));
                 if (queryParameters["plugin"].Contains("obfs=http") && !Utile.IsNullOrEmpty(obfsHost))
                 {
-                    obfsHost = obfsHost.Replace("obfs-host=", "");
+                    obfsHost = obfsHost?.Replace("obfs-host=", "");
                     server.network = Global.DefaultNetwork;
                     server.headerType = Global.TcpHeaderHttp;
-                    server.requestHost = obfsHost;
+                    server.requestHost = obfsHost ?? "";
                 }
                 else
                 {
@@ -844,7 +847,7 @@ namespace v2rayN.Handler
             ProfileItem item = new()
             {
                 configType = EConfigType.VLESS,
-                security = "none"
+                security = Global.None
             };
 
             Uri url = new(result);
@@ -855,7 +858,7 @@ namespace v2rayN.Handler
             item.id = Utile.UrlDecode(url.UserInfo);
 
             var query = Utile.ParseQueryString(url.Query);
-            item.security = query["encryption"] ?? "none";
+            item.security = query["encryption"] ?? Global.None;
             item.streamSecurity = query["security"] ?? "";
             ResolveStdTransport(query, ref item);
 
@@ -945,39 +948,41 @@ namespace v2rayN.Handler
             item.shortId = Utile.UrlDecode(query["sid"] ?? "");
             item.spiderX = Utile.UrlDecode(query["spx"] ?? "");
 
-            item.network = query["type"] ?? "tcp";
+            item.network = query["type"] ?? nameof(ETransport.tcp);
             switch (item.network)
             {
-                case "tcp":
-                    item.headerType = query["headerType"] ?? "none";
+                case nameof(ETransport.tcp):
+                    item.headerType = query["headerType"] ?? Global.None;
                     item.requestHost = Utile.UrlDecode(query["host"] ?? "");
 
                     break;
 
-                case "kcp":
-                    item.headerType = query["headerType"] ?? "none";
+                case nameof(ETransport.kcp):
+                    item.headerType = query["headerType"] ?? Global.None;
                     item.path = Utile.UrlDecode(query["seed"] ?? "");
                     break;
 
-                case "ws":
+                case nameof(ETransport.ws):
+                case nameof(ETransport.httpupgrade):
                     item.requestHost = Utile.UrlDecode(query["host"] ?? "");
                     item.path = Utile.UrlDecode(query["path"] ?? "/");
                     break;
 
-                case "http":
-                case "h2":
-                    item.network = "h2";
+                case nameof(ETransport.http):
+                case nameof(ETransport.h2):
+                    item.network = nameof(ETransport.h2);
                     item.requestHost = Utile.UrlDecode(query["host"] ?? "");
                     item.path = Utile.UrlDecode(query["path"] ?? "/");
                     break;
 
-                case "quic":
-                    item.headerType = query["headerType"] ?? "none";
-                    item.requestHost = query["quicSecurity"] ?? "none";
+                case nameof(ETransport.quic):
+                    item.headerType = query["headerType"] ?? Global.None;
+                    item.requestHost = query["quicSecurity"] ?? Global.None;
                     item.path = Utile.UrlDecode(query["key"] ?? "");
                     break;
 
-                case "grpc":
+                case nameof(ETransport.grpc):
+                    item.requestHost = Utile.UrlDecode(query["authority"] ?? ""); 
                     item.path = Utile.UrlDecode(query["serviceName"] ?? "");
                     item.headerType = Utile.UrlDecode(query["mode"] ?? Global.GrpcGunMode);
                     break;

@@ -361,14 +361,14 @@ namespace v2rayN
         /// <returns></returns>
         public static string GetPunycode(string url)
         {
-            if (string.IsNullOrWhiteSpace(url))
+            if (Utile.IsNullOrEmpty(url))
             {
                 return url;
             }
             try
             {
                 Uri uri = new(url);
-                if (uri.Host == uri.IdnHost)
+                if (uri.Host == uri.IdnHost || uri.Host == $"[{uri.IdnHost}]")
                 {
                     return url;
                 }
@@ -391,7 +391,7 @@ namespace v2rayN
 
         public static string Convert2Comma(string text)
         {
-            if (string.IsNullOrWhiteSpace(text))
+            if (Utile.IsNullOrEmpty(text))
             {
                 return text;
             }
@@ -428,7 +428,7 @@ namespace v2rayN
         /// <returns></returns>
         public static bool IsNullOrEmpty(string? text)
         {
-            if (string.IsNullOrEmpty(text))
+            if (string.IsNullOrWhiteSpace(text))
             {
                 return true;
             }
@@ -579,11 +579,10 @@ namespace v2rayN
             return inUse;
         }
 
-        public static int GetFreePort()
+        public static int GetFreePort(int defaultPort = 9090)
         {
             try
             {
-                int defaultPort = 9090;
                 if (!Utile.PortInUse(defaultPort))
                 {
                     return defaultPort;
@@ -598,7 +597,7 @@ namespace v2rayN
             catch
             {
             }
-            return 69090;
+            return 59090;
         }
 
         #endregion 测速
@@ -841,7 +840,7 @@ namespace v2rayN
             {
                 Directory.CreateDirectory(_tempPath);
             }
-            if (string.IsNullOrEmpty(filename))
+            if (Utile.IsNullOrEmpty(filename))
             {
                 return _tempPath;
             }
@@ -877,7 +876,7 @@ namespace v2rayN
             {
                 Directory.CreateDirectory(_tempPath);
             }
-            if (string.IsNullOrEmpty(filename))
+            if (Utile.IsNullOrEmpty(filename))
             {
                 return _tempPath;
             }
@@ -902,7 +901,7 @@ namespace v2rayN
                     Directory.CreateDirectory(_tempPath);
                 }
             }
-            if (string.IsNullOrEmpty(filename))
+            if (Utile.IsNullOrEmpty(filename))
             {
                 return _tempPath;
             }
@@ -919,7 +918,7 @@ namespace v2rayN
             {
                 Directory.CreateDirectory(_tempPath);
             }
-            if (string.IsNullOrEmpty(filename))
+            if (Utile.IsNullOrEmpty(filename))
             {
                 return _tempPath;
             }
@@ -936,7 +935,7 @@ namespace v2rayN
             {
                 Directory.CreateDirectory(_tempPath);
             }
-            if (string.IsNullOrEmpty(filename))
+            if (Utile.IsNullOrEmpty(filename))
             {
                 return _tempPath;
             }
@@ -1108,7 +1107,7 @@ namespace v2rayN
         /// <exception cref="ArgumentNullException"></exception>
         public static void AutoStart(string taskName, string fileName, string description)
         {
-            if (string.IsNullOrEmpty(taskName))
+            if (Utile.IsNullOrEmpty(taskName))
             {
                 return;
             }
@@ -1123,7 +1122,7 @@ namespace v2rayN
             {
                 taskService.RootFolder.DeleteTask(t.Name);
             }
-            if (string.IsNullOrEmpty(fileName))
+            if (Utile.IsNullOrEmpty(fileName))
             {
                 return;
             }
@@ -1137,7 +1136,7 @@ namespace v2rayN
             task.Settings.ExecutionTimeLimit = TimeSpan.Zero;
             task.Triggers.Add(new LogonTrigger { UserId = logonUser, Delay = TimeSpan.FromSeconds(10) });
             task.Principal.RunLevel = TaskRunLevel.Highest;
-            task.Actions.Add(new ExecAction(deamonFileName));
+            task.Actions.Add(new ExecAction(deamonFileName, null, Path.GetDirectoryName(deamonFileName)));
 
             taskService.RootFolder.RegisterTaskDefinition(TaskName, task);
         }

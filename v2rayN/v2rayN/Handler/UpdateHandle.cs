@@ -207,7 +207,7 @@ namespace v2rayN.Handler
                     //convert
                     if (!Utile.IsNullOrEmpty(item.convertTarget))
                     {
-                        var subConvertUrl = string.IsNullOrEmpty(config.constItem.subConvertUrl) ? Global.SubConvertUrls.FirstOrDefault() : config.constItem.subConvertUrl;
+                        var subConvertUrl = Utile.IsNullOrEmpty(config.constItem.subConvertUrl) ? Global.SubConvertUrls.FirstOrDefault() : config.constItem.subConvertUrl;
                         url = string.Format(subConvertUrl!, Utile.UrlEncode(url));
                         if (!url.Contains("target="))
                         {
@@ -270,7 +270,7 @@ namespace v2rayN.Handler
                     else
                     {
                         _updateFunc(false, $"{hashCode}{ResUI.MsgGetSubscriptionSuccessfully}");
-                        if (result!.Length < 99)
+                        if (result?.Length < 99)
                         {
                             _updateFunc(false, $"{hashCode}{result}");
                         }
@@ -415,9 +415,9 @@ namespace v2rayN.Handler
             try
             {
                 var gitHubReleases = JsonUtile.Deserialize<List<GitHubRelease>>(gitHubReleaseApi);
-                var gitHubRelease = preRelease ? gitHubReleases!.First() : gitHubReleases!.First(r => r.Prerelease == false);
-                var version = new SemanticVersion(gitHubRelease!.TagName);
-                var body = gitHubRelease!.Body;
+                var gitHubRelease = preRelease ? gitHubReleases?.First() : gitHubReleases?.First(r => r.Prerelease == false);
+                var version = new SemanticVersion(gitHubRelease?.TagName!);
+                var body = gitHubRelease?.Body;
 
                 var coreInfo = LazyConfig.Instance.GetCoreInfo(type);
 
@@ -584,54 +584,6 @@ namespace v2rayN.Handler
                             File.Delete(fileName);
                             //_updateFunc(true, "");
                         }
-                    }
-                    catch (Exception ex)
-                    {
-                        _updateFunc(false, ex.Message);
-                    }
-                }
-                else
-                {
-                    _updateFunc(false, args.Msg);
-                }
-            };
-            downloadHandle.Error += (sender2, args) =>
-            {
-                _updateFunc(false, args.GetException().Message);
-            };
-            await AskToDownload(downloadHandle, url, false);
-        }
-
-        private async Task UpdateGeoFile4Singbox(string geoName, Config config, bool needStop, Action<bool, string> update)
-        {
-            _config = config;
-            _updateFunc = update;
-            var url = string.Format(Global.SingboxGeoUrl, geoName);
-
-            DownloadHandle downloadHandle = new();
-            downloadHandle.UpdateCompleted += async (sender2, args) =>
-            {
-                if (args.Success)
-                {
-                    _updateFunc(false, string.Format(ResUI.MsgDownloadGeoFileSuccessfully, geoName));
-                    var coreHandler = Locator.Current.GetService<CoreHandler>();
-
-                    try
-                    {
-                        if (needStop)
-                        {
-                            coreHandler?.CoreStop();
-                            await Task.Delay(3000);
-                        }
-                        string fileName = Utile.GetTempPath(Utile.GetDownloadFileName(url));
-                        if (File.Exists(fileName))
-                        {
-                            string targetPath = Utile.GetConfigPath($"{geoName}.db");
-                            File.Copy(fileName, targetPath, true);
-
-                            File.Delete(fileName);
-                        }
-                        if (needStop) coreHandler?.LoadCore();
                     }
                     catch (Exception ex)
                     {

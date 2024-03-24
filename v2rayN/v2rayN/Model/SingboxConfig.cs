@@ -3,7 +3,7 @@
     public class SingboxConfig
     {
         public Log4Sbox log { get; set; }
-        public object dns { get; set; }
+        public Dns4Sbox? dns { get; set; }
         public List<Inbound4Sbox> inbounds { get; set; }
         public List<Outbound4Sbox> outbounds { get; set; }
         public Route4Sbox route { get; set; }
@@ -15,7 +15,7 @@
         public bool? disabled { get; set; }
         public string level { get; set; }
         public string output { get; set; }
-        public bool timestamp { get; set; }
+        public bool? timestamp { get; set; }
     }
 
     public class Dns4Sbox
@@ -118,10 +118,12 @@
         public string? peer_public_key { get; set; }
         public int[]? reserved { get; set; }
         public int? mtu { get; set; }
-        public Tls4Sbox tls { get; set; }
-        public Multiplex4Sbox multiplex { get; set; }
-        public Transport4Sbox transport { get; set; }
-        public HyObfs4Sbox obfs { get; set; }
+        public string? plugin { get; set; }
+        public string? plugin_opts { get; set; }
+        public Tls4Sbox? tls { get; set; }
+        public Multiplex4Sbox? multiplex { get; set; }
+        public Transport4Sbox? transport { get; set; }
+        public HyObfs4Sbox? obfs { get; set; }
     }
 
     public class Tls4Sbox
@@ -156,14 +158,14 @@
 
     public class Transport4Sbox
     {
-        public string type { get; set; }
-        public List<string>? host { get; set; }
+        public string? type { get; set; }
+        public object? host { get; set; }
         public string? path { get; set; }
         public Headers4Sbox? headers { get; set; }
 
-        public string service_name { get; set; }
-        public string idle_timeout { get; set; }
-        public string ping_timeout { get; set; }
+        public string? service_name { get; set; }
+        public string? idle_timeout { get; set; }
+        public string? ping_timeout { get; set; }
         public bool? permit_without_stream { get; set; }
     }
 
@@ -184,7 +186,7 @@
         public string address { get; set; }
         public string address_resolver { get; set; }
         public string strategy { get; set; }
-        public string detour { get; set; }
+        public string? detour { get; set; }
     }
 
     public class Experimental4Sbox

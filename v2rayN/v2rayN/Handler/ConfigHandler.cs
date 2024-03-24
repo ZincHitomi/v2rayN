@@ -61,7 +61,7 @@ namespace v2rayN.Handler
                 config.inbound = new List<InItem>();
                 InItem inItem = new()
                 {
-                    protocol = Global.InboundSocks,
+                    protocol = EInboundProtocol.socks.ToString(),
                     localPort = 10808,
                     udpEnabled = true,
                     sniffingEnabled = true,
@@ -69,19 +69,12 @@ namespace v2rayN.Handler
                 };
 
                 config.inbound.Add(inItem);
-
-                //inItem = new InItem();
-                //inItem.protocol = "http";
-                //inItem.localPort = 1081;
-                //inItem.udpEnabled = true;
-
-                //config.inbound.Add(inItem);
             }
             else
             {
                 if (config.inbound.Count > 0)
                 {
-                    config.inbound[0].protocol = Global.InboundSocks;
+                    config.inbound[0].protocol = EInboundProtocol.socks.ToString();
                 }
             }
             if (config.routingBasicItem == null)
@@ -920,6 +913,10 @@ namespace v2rayN.Handler
             {
                 return -1;
             }
+            if (!Utile.IsNullOrEmpty(profileItem.security) && profileItem.security != Global.None)
+            {
+                profileItem.security = Global.None;
+            }
 
             AddServerCommon(config, profileItem, toFile);
 
@@ -1180,9 +1177,49 @@ namespace v2rayN.Handler
                 return false;
             }
 
+            //Is v2ray array configuration
+            var configObjects = JsonUtile.Deserialize<Object[]>(clipboardData);
+            if (configObjects != null && configObjects.Length > 0)
+            {
+                if (isSub && !Utile.IsNullOrEmpty(subid))
+                {
+                    RemoveServerViaSubid(config, subid, isSub);
+                }
+
+                int count = 0;
+                foreach (var configObject in configObjects)
+                {
+                    var objectString = JsonUtile.Serialize(configObject);
+                    var v2rayCon = JsonUtile.Deserialize<V2rayConfig>(objectString);
+                    if (v2rayCon?.inbounds?.Count > 0 && v2rayCon.outbounds?.Count > 0)
+                    {
+                        var fileName = Utile.GetTempPath($"{Utile.GetGUID(false)}.json");
+                        File.WriteAllText(fileName, objectString);
+
+                        var profileIt = new ProfileItem
+                        {
+                            coreType = ECoreType.Xray,
+                            address = fileName,
+                            remarks = v2rayCon.remarks ?? "v2ray_custom",
+                            subid = subid,
+                            isSub = isSub
+                        };
+
+                        if (AddCustomServer(config, profileIt, true) == 0)
+                        {
+                            count++;
+                        }
+                    }
+                }
+                if (count > 0)
+                {
+                    return count;
+                }
+            }
+
             ProfileItem profileItem = new();
             //Is v2ray configuration
-            V2rayConfig? v2rayConfig = JsonUtile.Deserialize<V2rayConfig>(clipboardData);
+            var v2rayConfig = JsonUtile.Deserialize<V2rayConfig>(clipboardData);
             if (v2rayConfig?.inbounds?.Count > 0
                 && v2rayConfig.outbounds?.Count > 0)
             {
@@ -1191,7 +1228,7 @@ namespace v2rayN.Handler
 
                 profileItem.coreType = ECoreType.Xray;
                 profileItem.address = fileName;
-                profileItem.remarks = "v2ray_custom";
+                profileItem.remarks = v2rayConfig.remarks ?? "v2ray_custom";
             }
             //Is Clash configuration
             else if (Contains(clipboardData, "port", "socks-port", "proxies"))

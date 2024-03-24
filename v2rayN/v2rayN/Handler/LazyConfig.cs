@@ -19,7 +19,7 @@ namespace v2rayN.Handler
             {
                 if (_statePort is null)
                 {
-                    _statePort = Utile.GetFreePort();
+                    _statePort = Utile.GetFreePort(GetLocalPort(EInboundProtocol.api));
                 }
 
                 return _statePort.Value;
@@ -50,34 +50,10 @@ namespace v2rayN.Handler
             return _config;
         }
 
-        public int GetLocalPort(string protocol)
+        public int GetLocalPort(EInboundProtocol protocol)
         {
-            int localPort = _config.inbound.FirstOrDefault(t => t.protocol == Global.InboundSocks).localPort;
-            if (protocol == Global.InboundSocks)
-            {
-                return localPort;
-            }
-            else if (protocol == Global.InboundHttp)
-            {
-                return localPort + 1;
-            }
-            else if (protocol == Global.InboundSocks2)
-            {
-                return localPort + 2;
-            }
-            else if (protocol == Global.InboundHttp2)
-            {
-                return localPort + 3;
-            }
-            else if (protocol == ESysProxyType.Pac.ToString())
-            {
-                return localPort + 4;
-            }
-            else if (protocol == "speedtest")
-            {
-                return localPort + 103;
-            }
-            return localPort;
+            var localPort = _config.inbound.FirstOrDefault(t => t.protocol == nameof(EInboundProtocol.socks))?.localPort ?? 10808;
+            return localPort + (int)protocol;
         }
 
         public void AddProcess(IntPtr processHandle)
@@ -230,7 +206,7 @@ namespace v2rayN.Handler
             {
                 InitCoreInfo();
             }
-            return coreInfo!.FirstOrDefault(t => t.coreType == coreType);
+            return coreInfo?.FirstOrDefault(t => t.coreType == coreType);
         }
 
         public List<CoreInfo> GetCoreInfo()

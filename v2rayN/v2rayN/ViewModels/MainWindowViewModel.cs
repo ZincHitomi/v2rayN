@@ -610,6 +610,10 @@ namespace v2rayN.ViewModels
         private void UpdateHandler(bool notify, string msg)
         {
             _noticeHandler?.SendMessage(msg);
+            if (notify)
+            {
+                _noticeHandler?.Enqueue(msg);
+            }
         }
 
         private void UpdateTaskHandler(bool success, string msg)
@@ -1434,11 +1438,11 @@ namespace v2rayN.ViewModels
                 InitSubscriptionView();
                 RefreshServers();
                 Reload();
-                UI.Show(ResUI.OperationSuccess);
+                _noticeHandler?.Enqueue(ResUI.OperationSuccess);
             }
             else
             {
-                _noticeHandler.Enqueue(ResUI.OperationFailed);
+                _noticeHandler?.Enqueue(ResUI.OperationFailed);
             }
         }
 
@@ -1466,7 +1470,7 @@ namespace v2rayN.ViewModels
                 _noticeHandler?.SendMessage(msg);
                 if (success)
                 {
-                    CloseV2ray();
+                    CloseCore();
 
                     string fileName = Utile.GetTempPath(Utile.GetDownloadFileName(msg));
                     string toPath = Utile.GetBinPath("", type.ToString());
@@ -1495,13 +1499,13 @@ namespace v2rayN.ViewModels
 
         #endregion CheckUpdate
 
-        #region v2ray job
+        #region core job
 
         public void Reload()
         {
             BlReloadEnabled = false;
 
-            LoadV2ray().ContinueWith(task =>
+            LoadCore().ContinueWith(task =>
             {
                 TestServerAvailability();
 
@@ -1512,7 +1516,7 @@ namespace v2rayN.ViewModels
             });
         }
 
-        private async Task LoadV2ray()
+        private async Task LoadCore()
         {
             await Task.Run(() =>
             {
@@ -1524,7 +1528,7 @@ namespace v2rayN.ViewModels
             });
         }
 
-        private void CloseV2ray()
+        private void CloseCore()
         {
             ConfigHandler.SaveConfig(_config, false);
 
@@ -1533,7 +1537,7 @@ namespace v2rayN.ViewModels
             _coreHandler.CoreStop();
         }
 
-        #endregion v2ray job
+        #endregion core job
 
         #region System proxy and Routings
 
@@ -1807,7 +1811,7 @@ namespace v2rayN.ViewModels
         public void InboundDisplayStaus()
         {
             StringBuilder sb = new();
-            sb.Append($"[{Global.InboundSocks}:{LazyConfig.Instance.GetLocalPort(Global.InboundSocks)}]");
+            sb.Append($"[{EInboundProtocol.socks}:{LazyConfig.Instance.GetLocalPort(EInboundProtocol.socks)}]");
             sb.Append(" | ");
             //if (_config.sysProxyType == ESysProxyType.ForcedChange)
             //{
@@ -1815,7 +1819,7 @@ namespace v2rayN.ViewModels
             //}
             //else
             //{
-            sb.Append($"[{Global.InboundHttp}:{LazyConfig.Instance.GetLocalPort(Global.InboundHttp)}]");
+            sb.Append($"[{EInboundProtocol.http}:{LazyConfig.Instance.GetLocalPort(EInboundProtocol.http)}]");
             //}
             InboundDisplay = $"{ResUI.LabLocal}:{sb}";
 
@@ -1824,9 +1828,9 @@ namespace v2rayN.ViewModels
                 if (_config.inbound[0].newPort4LAN)
                 {
                     StringBuilder sb2 = new();
-                    sb2.Append($"[{Global.InboundSocks}:{LazyConfig.Instance.GetLocalPort(Global.InboundSocks2)}]");
+                    sb2.Append($"[{EInboundProtocol.socks}:{LazyConfig.Instance.GetLocalPort(EInboundProtocol.socks2)}]");
                     sb2.Append(" | ");
-                    sb2.Append($"[{Global.InboundHttp}:{LazyConfig.Instance.GetLocalPort(Global.InboundHttp2)}]");
+                    sb2.Append($"[{EInboundProtocol.http}:{LazyConfig.Instance.GetLocalPort(EInboundProtocol.http2)}]");
                     InboundLanDisplay = $"{ResUI.LabLAN}:{sb2}";
                 }
                 else

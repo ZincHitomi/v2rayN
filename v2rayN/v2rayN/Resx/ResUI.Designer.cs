@@ -466,7 +466,7 @@ namespace v2rayN.Resx {
         }
         
         /// <summary>
-        ///   查找类似 Previous proxy remakrs 的本地化字符串。
+        ///   查找类似 Previous proxy remarks 的本地化字符串。
         /// </summary>
         public static string LvPrevProfile {
             get {
@@ -2852,7 +2852,7 @@ namespace v2rayN.Resx {
         }
         
         /// <summary>
-        ///   查找类似 HTTP port=SOCKS port+1 的本地化字符串。
+        ///   查找类似 HTTP port=SOCKS port+1;Pac port=SOCKS port+4;API port=SOCKS port+5; 的本地化字符串。
         /// </summary>
         public static string TbSettingsSocksPortTip {
             get {
@@ -3203,7 +3203,7 @@ namespace v2rayN.Resx {
         }
         
         /// <summary>
-        ///   查找类似 *ws path 的本地化字符串。
+        ///   查找类似 *ws/httpupgrade path 的本地化字符串。
         /// </summary>
         public static string TransportPathTip1 {
             get {
@@ -3257,7 +3257,7 @@ namespace v2rayN.Resx {
         }
         
         /// <summary>
-        ///   查找类似 *ws host 的本地化字符串。
+        ///   查找类似 *ws/httpupgrade host 的本地化字符串。
         /// </summary>
         public static string TransportRequestHostTip2 {
             get {
@@ -3280,6 +3280,15 @@ namespace v2rayN.Resx {
         public static string TransportRequestHostTip4 {
             get {
                 return ResourceManager.GetString("TransportRequestHostTip4", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 *grpc Authority 的本地化字符串。
+        /// </summary>
+        public static string TransportRequestHostTip5 {
+            get {
+                return ResourceManager.GetString("TransportRequestHostTip5", resourceCulture);
             }
         }
         

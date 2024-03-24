@@ -1,6 +1,4 @@
-﻿using System.Net;
-using System.Net.Sockets;
-using v2rayN.Model;
+﻿using v2rayN.Model;
 
 namespace v2rayN.Handler
 {
@@ -132,28 +130,6 @@ namespace v2rayN.Handler
                 _serverStatItem.todayDown = 0;
                 _serverStatItem.dateNow = ticks;
             }
-        }
-
-        private int GetFreePort()
-        {
-            try
-            {
-                int defaultPort = 9090;
-                if (!Utile.PortInUse(defaultPort))
-                {
-                    return defaultPort;
-                }
-
-                TcpListener l = new(IPAddress.Loopback, 0);
-                l.Start();
-                int port = ((IPEndPoint)l.LocalEndpoint).Port;
-                l.Stop();
-                return port;
-            }
-            catch
-            {
-            }
-            return 69090;
         }
     }
 }

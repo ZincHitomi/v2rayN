@@ -359,7 +359,7 @@
     <value>请填写正确的自定义DNS</value>
   </data>
   <data name="TransportPathTip1" xml:space="preserve">
-    <value>*ws path</value>
+    <value>*ws/httpupgrade path</value>
   </data>
   <data name="TransportPathTip2" xml:space="preserve">
     <value>*h2 path</value>
@@ -374,7 +374,7 @@
     <value>*http host中间逗号(,)分隔</value>
   </data>
   <data name="TransportRequestHostTip2" xml:space="preserve">
-    <value>*ws host</value>
+    <value>*ws/httpupgrade host</value>
   </data>
   <data name="TransportRequestHostTip3" xml:space="preserve">
     <value>*h2 host中间逗号(,)分隔</value>
@@ -1037,7 +1037,7 @@
     <value>拷贝字体TTF/TTC文件到目录guiFonts，重启设置</value>
   </data>
   <data name="TbSettingsSocksPortTip" xml:space="preserve">
-    <value>http端口=socks端口+1</value>
+    <value>http端口=socks端口+1；Pac端口=socks端口+4；API端口=socks端口+5；</value>
   </data>
   <data name="TbSettingsStartBootTip" xml:space="preserve">
     <value>以管理员权限设置此项，在启动后获得管理员权限</value>
@@ -1191,5 +1191,8 @@
   </data>
   <data name="SpeedtestingStop" xml:space="preserve">
     <value>测试终止中...</value>
+  </data>
+  <data name="TransportRequestHostTip5" xml:space="preserve">
+    <value>*grpc Authority</value>
   </data>
 </root>

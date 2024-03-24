@@ -23,13 +23,13 @@ namespace v2rayN
 
         public async Task<string?> GetAsync(string url)
         {
-            if (string.IsNullOrEmpty(url)) return null;
+            if (Utile.IsNullOrEmpty(url)) return null;
             return await httpClient.GetStringAsync(url);
         }
 
         public async Task<string?> GetAsync(HttpClient client, string url, CancellationToken token = default)
         {
-            if (string.IsNullOrWhiteSpace(url)) return null;
+            if (Utile.IsNullOrEmpty(url)) return null;
             return await client.GetStringAsync(url, token);
         }
 
@@ -76,19 +76,19 @@ namespace v2rayN
                     //if (progressPercentage != percent && percent % 10 == 0)
                     {
                         progressPercentage = percent;
-                        progress!.Report(percent);
+                        progress?.Report(percent);
                     }
                 }
             }
             if (canReportProgress)
             {
-                progress!.Report(101);
+                progress?.Report(101);
             }
         }
 
         public async Task DownloadDataAsync4Speed(HttpClient client, string url, IProgress<string> progress, CancellationToken token = default)
         {
-            if (string.IsNullOrEmpty(url))
+            if (Utile.IsNullOrEmpty(url))
             {
                 throw new ArgumentNullException(nameof(url));
             }

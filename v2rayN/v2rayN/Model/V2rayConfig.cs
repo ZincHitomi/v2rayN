@@ -8,6 +8,11 @@ namespace v2rayN.Model
     public class V2rayConfig
     {
         /// <summary>
+        /// Properties that do not belong to Ray
+        /// </summary>
+        public string? remarks { get; set; }
+
+        /// <summary>
         /// 日志配置
         /// </summary>
         public Log4Ray log { get; set; }
@@ -432,6 +437,11 @@ namespace v2rayN.Model
         public WsSettings4Ray wsSettings { get; set; }
 
         /// <summary>
+        ///
+        /// </summary>
+        public HttpupgradeSettings4Ray? httpupgradeSettings { get; set; }
+
+        /// <summary>
         /// h2传输额外设置
         /// </summary>
         public HttpSettings4Ray httpSettings { get; set; }
@@ -583,6 +593,19 @@ namespace v2rayN.Model
         public string UserAgent { get; set; }
     }
 
+    public class HttpupgradeSettings4Ray
+    {
+        /// <summary>
+        ///
+        /// </summary>
+        public string? path { get; set; }
+
+        /// <summary>
+        ///
+        /// </summary>
+        public string? host { get; set; }
+    }
+
     public class HttpSettings4Ray
     {
         /// <summary>
@@ -616,7 +639,8 @@ namespace v2rayN.Model
 
     public class GrpcSettings4Ray
     {
-        public string serviceName { get; set; }
+        public string? authority { get; set; }
+        public string? serviceName { get; set; }
         public bool multiMode { get; set; }
         public int idle_timeout { get; set; }
         public int health_check_timeout { get; set; }
