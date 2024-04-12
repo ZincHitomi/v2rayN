@@ -15,7 +15,7 @@ using System.Text;
 using System.Windows;
 using System.Windows.Media;
 using v2rayN.Handler;
-using v2rayN.Model;
+using v2rayN.Models;
 using v2rayN.Resx;
 using v2rayN.Views;
 
@@ -86,6 +86,7 @@ namespace v2rayN.ViewModels
         public ReactiveCommand<Unit, Unit> AddVlessServerCmd { get; }
         public ReactiveCommand<Unit, Unit> AddShadowsocksServerCmd { get; }
         public ReactiveCommand<Unit, Unit> AddSocksServerCmd { get; }
+        public ReactiveCommand<Unit, Unit> AddHttpServerCmd { get; }
         public ReactiveCommand<Unit, Unit> AddTrojanServerCmd { get; }
         public ReactiveCommand<Unit, Unit> AddHysteria2ServerCmd { get; }
         public ReactiveCommand<Unit, Unit> AddTuicServerCmd { get; }
@@ -332,6 +333,10 @@ namespace v2rayN.ViewModels
             AddSocksServerCmd = ReactiveCommand.Create(() =>
             {
                 EditServer(true, EConfigType.Socks);
+            });
+            AddHttpServerCmd = ReactiveCommand.Create(() =>
+            {
+                EditServer(true, EConfigType.Http);
             });
             AddTrojanServerCmd = ReactiveCommand.Create(() =>
             {
@@ -597,7 +602,7 @@ namespace v2rayN.ViewModels
 
         private void OnProgramStarted(object state, bool timeout)
         {
-            Application.Current.Dispatcher.Invoke((Action)(() =>
+            Application.Current?.Dispatcher.Invoke((Action)(() =>
             {
                 ShowHideWindow(true);
             }));
@@ -638,7 +643,7 @@ namespace v2rayN.ViewModels
         {
             try
             {
-                Application.Current.Dispatcher.Invoke((Action)(() =>
+                Application.Current?.Dispatcher.Invoke((Action)(() =>
                 {
                     if (!_showInTaskbar)
                     {
@@ -684,7 +689,7 @@ namespace v2rayN.ViewModels
 
         private void UpdateSpeedtestHandler(string indexId, string delay, string speed)
         {
-            Application.Current.Dispatcher.Invoke((Action)(() =>
+            Application.Current?.Dispatcher.Invoke((Action)(() =>
             {
                 SetTestResult(indexId, delay, speed);
             }));
@@ -747,7 +752,6 @@ namespace v2rayN.ViewModels
             {
                 Logging.SaveLog("MyAppExit Begin");
 
-                StorageUI();
                 ConfigHandler.SaveConfig(_config);
 
                 //HttpProxyHandle.CloseHttpAgent(config);
@@ -772,7 +776,6 @@ namespace v2rayN.ViewModels
             finally
             {
                 Application.Current.Shutdown();
-                Environment.Exit(0);
             }
         }
 
@@ -848,7 +851,7 @@ namespace v2rayN.ViewModels
                         }).OrderBy(t => t.sort).ToList();
             _lstProfile = JsonUtils.Deserialize<List<ProfileItem>>(JsonUtils.Serialize(lstModel));
 
-            Application.Current.Dispatcher.Invoke((Action)(() =>
+            Application.Current?.Dispatcher.Invoke((Action)(() =>
             {
                 _profileItems.Clear();
                 _profileItems.AddRange(lstModel);
@@ -1186,7 +1189,7 @@ namespace v2rayN.ViewModels
             (new UpdateHandle()).RunAvailabilityCheck((bool success, string msg) =>
             {
                 _noticeHandler?.SendMessage(msg, true);
-                Application.Current.Dispatcher.Invoke((Action)(() =>
+                Application.Current?.Dispatcher.Invoke((Action)(() =>
                 {
                     if (!_showInTaskbar)
                     {
@@ -1509,7 +1512,7 @@ namespace v2rayN.ViewModels
             {
                 TestServerAvailability();
 
-                Application.Current.Dispatcher.Invoke((Action)(() =>
+                Application.Current?.Dispatcher.Invoke((Action)(() =>
                 {
                     BlReloadEnabled = true;
                 }));
@@ -1559,7 +1562,7 @@ namespace v2rayN.ViewModels
             SysProxyHandle.UpdateSysProxy(_config, _config.tunModeItem.enableTun ? true : false);
             _noticeHandler?.SendMessage(ResUI.TipChangeSystemProxy + _config.sysProxyType.ToString(), true);
 
-            Application.Current.Dispatcher.Invoke((Action)(() =>
+            Application.Current?.Dispatcher.Invoke((Action)(() =>
             {
                 BlSystemProxyClear = (type == ESysProxyType.ForcedClear);
                 BlSystemProxySet = (type == ESysProxyType.ForcedChange);
@@ -1706,10 +1709,6 @@ namespace v2rayN.ViewModels
                     ChangePrimaryColor(swatch.ExemplarHue.Color);
                 }
             }
-        }
-
-        private void StorageUI()
-        {
         }
 
         private void BindingUI()
@@ -1873,7 +1872,7 @@ namespace v2rayN.ViewModels
                  .Delay(TimeSpan.FromSeconds(1))
                  .Subscribe(x =>
                  {
-                     Application.Current.Dispatcher.Invoke(() =>
+                     Application.Current?.Dispatcher.Invoke(() =>
                      {
                          ShowHideWindow(false);
                      });

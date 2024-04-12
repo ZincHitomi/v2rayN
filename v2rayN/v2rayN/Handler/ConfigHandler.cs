@@ -1,7 +1,7 @@
 ﻿using System.Data;
 using System.IO;
 using System.Text.RegularExpressions;
-using v2rayN.Model;
+using v2rayN.Models;
 
 namespace v2rayN.Handler
 {
@@ -656,6 +656,23 @@ namespace v2rayN.Handler
         public static int AddSocksServer(Config config, ProfileItem profileItem, bool toFile = true)
         {
             profileItem.configType = EConfigType.Socks;
+
+            profileItem.address = profileItem.address.TrimEx();
+
+            AddServerCommon(config, profileItem, toFile);
+
+            return 0;
+        }
+
+        /// <summary>
+        /// Add or edit server
+        /// </summary>
+        /// <param name="config"></param>
+        /// <param name="profileItem"></param>
+        /// <returns></returns>
+        public static int AddHttpServer(Config config, ProfileItem profileItem, bool toFile = true)
+        {
+            profileItem.configType = EConfigType.Http;
 
             profileItem.address = profileItem.address.TrimEx();
 
@@ -1657,14 +1674,15 @@ namespace v2rayN.Handler
 
         public static int InitBuiltinRouting(Config config, bool blImportAdvancedRules = false)
         {
+            var ver = "V2-";
             var items = LazyConfig.Instance.RoutingItems();
-            if (blImportAdvancedRules || items.Count <= 0)
+            if (blImportAdvancedRules || items.Where(t => t.remarks.StartsWith(ver)).ToList().Count <= 0)
             {
                 var maxSort = items.Count;
                 //Bypass the mainland
                 var item2 = new RoutingItem()
                 {
-                    remarks = "绕过大陆(Whitelist)",
+                    remarks = $"{ver}绕过大陆(Whitelist)",
                     url = string.Empty,
                     sort = maxSort + 1,
                 };
@@ -1673,7 +1691,7 @@ namespace v2rayN.Handler
                 //Blacklist
                 var item3 = new RoutingItem()
                 {
-                    remarks = "黑名单(Blacklist)",
+                    remarks = $"{ver}黑名单(Blacklist)",
                     url = string.Empty,
                     sort = maxSort + 2,
                 };
@@ -1682,7 +1700,7 @@ namespace v2rayN.Handler
                 //Global
                 var item1 = new RoutingItem()
                 {
-                    remarks = "全局(Global)",
+                    remarks = $"{ver}全局(Global)",
                     url = string.Empty,
                     sort = maxSort + 3,
                 };

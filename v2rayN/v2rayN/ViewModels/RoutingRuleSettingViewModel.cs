@@ -5,7 +5,7 @@ using Splat;
 using System.Reactive;
 using System.Windows;
 using v2rayN.Handler;
-using v2rayN.Model;
+using v2rayN.Models;
 using v2rayN.Resx;
 using v2rayN.Views;
 using Application = System.Windows.Application;
@@ -196,13 +196,14 @@ namespace v2rayN.ViewModels
                 return;
             }
 
-            var lst = new List<RulesItem>();
+            var lst = new List<RulesItem4Ray>();
             foreach (var it in SelectedSources)
             {
                 var item = _rules.FirstOrDefault(t => t.id == it?.id);
                 if (item != null)
                 {
-                    lst.Add(item);
+                    var item2 = JsonUtils.Deserialize<RulesItem4Ray>(JsonUtils.Serialize(item));
+                    lst.Add(item2 ?? new());
                 }
             }
             if (lst.Count > 0)

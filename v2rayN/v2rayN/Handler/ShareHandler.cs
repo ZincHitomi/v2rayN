@@ -1,6 +1,6 @@
 ﻿using System.Collections.Specialized;
 using System.Text.RegularExpressions;
-using v2rayN.Model;
+using v2rayN.Models;
 using v2rayN.Resx;
 
 namespace v2rayN.Handler
@@ -982,7 +982,7 @@ namespace v2rayN.Handler
                     break;
 
                 case nameof(ETransport.grpc):
-                    item.requestHost = Utils.UrlDecode(query["authority"] ?? ""); 
+                    item.requestHost = Utils.UrlDecode(query["authority"] ?? "");
                     item.path = Utils.UrlDecode(query["serviceName"] ?? "");
                     item.headerType = Utils.UrlDecode(query["mode"] ?? Global.GrpcGunMode);
                     break;

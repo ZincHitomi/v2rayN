@@ -1,4 +1,4 @@
-﻿using v2rayN.Model;
+﻿using v2rayN.Models;
 
 namespace v2rayN
 {
@@ -23,6 +23,7 @@ namespace v2rayN
         public const string SpeedPingTestUrl = @"https://www.google.com/generate_204";
         public const string JuicityCoreUrl = "https://github.com/juicity/juicity/releases";
         public const string CustomRoutingListUrl = @"https://raw.githubusercontent.com/2dust/v2rayCustomRoutingList/master/";
+        public const string SingboxRulesetUrl = @"https://raw.githubusercontent.com/SagerNet/sing-{0}/rule-set/{1}.srs";
 
         public const string PromotionUrl = @"aHR0cHM6Ly85LjIzNDQ1Ni54eXovYWJjLmh0bWw=";
         public const string ConfigFileName = "guiNConfig.json";
@@ -143,6 +144,7 @@ namespace v2rayN
             {EConfigType.VMess,"vmess"},
             {EConfigType.Shadowsocks,"shadowsocks"},
             {EConfigType.Socks,"socks"},
+            {EConfigType.Http,"http"},
             {EConfigType.VLESS,"vless"},
             {EConfigType.Trojan,"trojan"},
             {EConfigType.Hysteria2,"hysteria2"},
