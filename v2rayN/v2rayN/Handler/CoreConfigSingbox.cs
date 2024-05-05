@@ -54,7 +54,7 @@ namespace v2rayN.Handler
 
                 GenDns(node, singboxConfig);
 
-                GenStatistic(singboxConfig);
+                GenExperimental(singboxConfig);
 
                 ConvertGeo2Ruleset(singboxConfig);
 
@@ -337,16 +337,16 @@ namespace v2rayN.Handler
         {
             try
             {
-                //if (_config.coreBasicItem.muxEnabled)
-                //{
-                //    var mux = new Multiplex4Sbox()
-                //    {
-                //        enabled = true,
-                //        protocol = _config.mux4SboxItem.protocol,
-                //        max_connections = _config.mux4SboxItem.max_connections,
-                //    };
-                //    outbound.multiplex = mux;
-                //}
+                if (_config.coreBasicItem.muxEnabled && !Utils.IsNullOrEmpty(_config.mux4SboxItem.protocol))
+                {
+                    var mux = new Multiplex4Sbox()
+                    {
+                        enabled = true,
+                        protocol = _config.mux4SboxItem.protocol,
+                        max_connections = _config.mux4SboxItem.max_connections,
+                    };
+                    outbound.multiplex = mux;
+                }
             }
             catch (Exception ex)
             {
@@ -539,24 +539,38 @@ namespace v2rayN.Handler
         {
             try
             {
+                var dnsOutbound = "dns_out";
+                if (!_config.inbound[0].sniffingEnabled)
+                {
+                    singboxConfig.route.rules.Add(new()
+                    {
+                        port = [53],
+                        network = "udp",
+                        outbound = dnsOutbound
+                    });
+                }
+
                 if (_config.tunModeItem.enableTun)
                 {
                     singboxConfig.route.auto_detect_interface = true;
 
                     var tunRules = JsonUtils.Deserialize<List<Rule4Sbox>>(Utils.GetEmbedText(Global.TunSingboxRulesFileName));
-                    singboxConfig.route.rules.AddRange(tunRules);
+                    if (tunRules != null)
+                    {
+                        singboxConfig.route.rules.AddRange(tunRules);
+                    }
 
                     GenRoutingDirectExe(out List<string> lstDnsExe, out List<string> lstDirectExe);
                     singboxConfig.route.rules.Add(new()
                     {
                         port = new() { 53 },
-                        outbound = "dns_out",
+                        outbound = dnsOutbound,
                         process_name = lstDnsExe
                     });
 
                     singboxConfig.route.rules.Add(new()
                     {
-                        outbound = "direct",
+                        outbound = Global.DirectTag,
                         process_name = lstDirectExe
                     });
                 }
@@ -805,7 +819,7 @@ namespace v2rayN.Handler
                 {
                     tag = "local_local",
                     address = "223.5.5.5",
-                    detour = "direct"
+                    detour = Global.DirectTag,
                 });
                 dns4Sbox.rules.Add(new()
                 {
@@ -822,30 +836,26 @@ namespace v2rayN.Handler
             return 0;
         }
 
-        private int GenStatistic(SingboxConfig singboxConfig)
+        private int GenExperimental(SingboxConfig singboxConfig)
         {
             if (_config.guiItem.enableStatistics)
             {
-                singboxConfig.experimental = new Experimental4Sbox()
+                singboxConfig.experimental ??= new Experimental4Sbox();
+                singboxConfig.experimental.clash_api = new Clash_Api4Sbox()
                 {
-                    cache_file = new CacheFile4Sbox()
-                    {
-                        enabled = true
-                    },
-                    //v2ray_api = new V2ray_Api4Sbox()
-                    //{
-                    //    listen = $"{Global.Loopback}:{Global.StatePort}",
-                    //    stats = new Stats4Sbox()
-                    //    {
-                    //        enabled = true,
-                    //    }
-                    //},
-                    clash_api = new Clash_Api4Sbox()
-                    {
-                        external_controller = $"{Global.Loopback}:{LazyConfig.Instance.StatePort}",
-                    }
+                    external_controller = $"{Global.Loopback}:{LazyConfig.Instance.StatePort}",
                 };
             }
+
+            if (_config.coreBasicItem.enableCacheFile4Sbox)
+            {
+                singboxConfig.experimental ??= new Experimental4Sbox();
+                singboxConfig.experimental.cache_file = new CacheFile4Sbox()
+                {
+                    enabled = true
+                };
+            }
+
             return 0;
         }
 
@@ -885,18 +895,45 @@ namespace v2rayN.Handler
                 ruleSets.AddRange(dnsRule.rule_set);
             }
 
+            //load custom ruleset file
+            List<Ruleset4Sbox> customRulesets = [];
+            if (_config.routingBasicItem.enableRoutingAdvanced)
+            {
+                var routing = ConfigHandler.GetDefaultRouting(_config);
+                if (!Utils.IsNullOrEmpty(routing.customRulesetPath4Singbox))
+                {
+                    var result = Utils.LoadResource(routing.customRulesetPath4Singbox);
+                    if (!Utils.IsNullOrEmpty(result))
+                    {
+                        customRulesets = (JsonUtils.Deserialize<List<Ruleset4Sbox>>(result) ?? [])
+                            .Where(t => t.tag != null)
+                            .Where(t => t.type != null)
+                            .Where(t => t.format != null)
+                            .ToList();
+                    }
+                }
+            }
+
             //Add ruleset srs
             singboxConfig.route.rule_set = [];
             foreach (var item in new HashSet<string>(ruleSets))
             {
-                singboxConfig.route.rule_set.Add(new()
+                var customRuleset = customRulesets.FirstOrDefault(t => t.tag != null && t.tag.Equals(item));
+                if (customRuleset != null)
                 {
-                    type = "remote",
-                    format = "binary",
-                    tag = item,
-                    url = string.Format(Global.SingboxRulesetUrl, item.StartsWith(geosite) ? geosite : geoip, item),
-                    download_detour = Global.ProxyTag
-                });
+                    singboxConfig.route.rule_set.Add(customRuleset);
+                }
+                else
+                {
+                    singboxConfig.route.rule_set.Add(new()
+                    {
+                        type = "remote",
+                        format = "binary",
+                        tag = item,
+                        url = string.Format(Global.SingboxRulesetUrl, item.StartsWith(geosite) ? geosite : geoip, item),
+                        download_detour = Global.ProxyTag
+                    });
+                }
             }
 
             return 0;

@@ -412,6 +412,15 @@ namespace v2rayN.Resx {
         }
         
         /// <summary>
+        ///   查找类似 Custom the rule-set of sing-box 的本地化字符串。
+        /// </summary>
+        public static string LvCustomRulesetPath4Singbox {
+            get {
+                return ResourceManager.GetString("LvCustomRulesetPath4Singbox", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Enabled Update 的本地化字符串。
         /// </summary>
         public static string LvEnabled {
@@ -2605,6 +2614,15 @@ namespace v2rayN.Resx {
         public static string TbSettingsEnableAutoAdjustMainLvColWidth {
             get {
                 return ResourceManager.GetString("TbSettingsEnableAutoAdjustMainLvColWidth", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Enable cache file for sing-box (ruleset files) 的本地化字符串。
+        /// </summary>
+        public static string TbSettingsEnableCacheFile4Sbox {
+            get {
+                return ResourceManager.GetString("TbSettingsEnableCacheFile4Sbox", resourceCulture);
             }
         }
         

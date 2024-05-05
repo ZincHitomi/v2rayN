@@ -33,6 +33,8 @@ namespace v2rayN.Models
         public string defUserAgent { get; set; }
 
         public bool enableFragment { get; set; }
+
+        public bool enableCacheFile4Sbox { get; set; } = true;
     }
 
     [Serializable]
@@ -180,16 +182,11 @@ namespace v2rayN.Models
     [Serializable]
     public class RoutingBasicItem
     {
-        /// <summary>
-        /// 域名解析策略
-        /// </summary>
         public string domainStrategy { get; set; }
-
         public string domainStrategy4Singbox { get; set; }
-
         public string domainMatcher { get; set; }
         public string routingIndexId { get; set; }
-        public bool enableRoutingAdvanced { get; set; }
+        public bool enableRoutingAdvanced { get; set; }        
     }
 
     [Serializable]
