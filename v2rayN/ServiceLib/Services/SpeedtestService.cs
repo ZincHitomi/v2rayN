@@ -2,21 +2,20 @@
 using System.Net;
 using System.Net.Sockets;
 
-namespace ServiceLib.Handler
+namespace ServiceLib.Services
 {
-    public class SpeedtestHandler
+    public class SpeedtestService
     {
         private Config? _config;
-        private CoreHandler _coreHandler;
         private List<ServerTestItem> _selecteds;
         private ESpeedActionType _actionType;
         private Action<SpeedTestResult> _updateFunc;
         private bool _exitLoop = false;
 
-        public SpeedtestHandler(Config config, CoreHandler coreHandler, List<ProfileItem> selecteds, ESpeedActionType actionType, Action<SpeedTestResult> update)
+        public SpeedtestService(Config config, List<ProfileItem> selecteds, ESpeedActionType actionType, Action<SpeedTestResult> update)
         {
             _config = config;
-            _coreHandler = coreHandler;
+
             _actionType = actionType;
             _updateFunc = update;
 
@@ -137,14 +136,14 @@ namespace ServiceLib.Handler
             {
                 string msg = string.Empty;
 
-                pid = _coreHandler.LoadCoreConfigSpeedtest(_selecteds);
+                pid = CoreHandler.Instance.LoadCoreConfigSpeedtest(_selecteds);
                 if (pid < 0)
                 {
                     UpdateFunc("", ResUI.FailedToRunCore);
                     return Task.CompletedTask;
                 }
 
-                DownloadHandler downloadHandle = new DownloadHandler();
+                DownloadService downloadHandle = new DownloadService();
 
                 List<Task> tasks = new();
                 foreach (var it in _selecteds)
@@ -185,7 +184,7 @@ namespace ServiceLib.Handler
             {
                 if (pid > 0)
                 {
-                    _coreHandler.CoreStopPid(pid);
+                    CoreHandler.Instance.CoreStopPid(pid);
                 }
                 ProfileExHandler.Instance.SaveTo();
             }
@@ -201,7 +200,7 @@ namespace ServiceLib.Handler
             //    _selecteds = _selecteds.OrderBy(t => t.delay).ToList();
             //}
 
-            pid = _coreHandler.LoadCoreConfigSpeedtest(_selecteds);
+            pid = CoreHandler.Instance.LoadCoreConfigSpeedtest(_selecteds);
             if (pid < 0)
             {
                 UpdateFunc("", ResUI.FailedToRunCore);
@@ -211,7 +210,7 @@ namespace ServiceLib.Handler
             string url = _config.speedTestItem.speedTestUrl;
             var timeout = _config.speedTestItem.speedTestTimeout;
 
-            DownloadHandler downloadHandle = new();
+            DownloadService downloadHandle = new();
 
             foreach (var it in _selecteds)
             {
@@ -236,12 +235,12 @@ namespace ServiceLib.Handler
                 ProfileExHandler.Instance.SetTestSpeed(it.indexId, "-1");
                 UpdateFunc(it.indexId, "", ResUI.Speedtesting);
 
-                var item = LazyConfig.Instance.GetProfileItem(it.indexId);
+                var item = AppHandler.Instance.GetProfileItem(it.indexId);
                 if (item is null) continue;
 
                 WebProxy webProxy = new(Global.Loopback, it.port);
 
-                await downloadHandle.DownloadDataAsync(url, webProxy, timeout, (bool success, string msg) =>
+                await downloadHandle.DownloadDataAsync(url, webProxy, timeout, (success, msg) =>
                 {
                     decimal.TryParse(msg, out decimal dec);
                     if (dec > 0)
@@ -254,7 +253,7 @@ namespace ServiceLib.Handler
 
             if (pid > 0)
             {
-                _coreHandler.CoreStopPid(pid);
+                CoreHandler.Instance.CoreStopPid(pid);
             }
             UpdateFunc("", ResUI.SpeedtestingCompleted);
             ProfileExHandler.Instance.SaveTo();
@@ -263,7 +262,7 @@ namespace ServiceLib.Handler
         private async Task RunSpeedTestMulti()
         {
             int pid = -1;
-            pid = _coreHandler.LoadCoreConfigSpeedtest(_selecteds);
+            pid = CoreHandler.Instance.LoadCoreConfigSpeedtest(_selecteds);
             if (pid < 0)
             {
                 UpdateFunc("", ResUI.FailedToRunCore);
@@ -273,7 +272,7 @@ namespace ServiceLib.Handler
             string url = _config.speedTestItem.speedTestUrl;
             var timeout = _config.speedTestItem.speedTestTimeout;
 
-            DownloadHandler downloadHandle = new();
+            DownloadService downloadHandle = new();
 
             foreach (var it in _selecteds)
             {
@@ -299,11 +298,11 @@ namespace ServiceLib.Handler
                 ProfileExHandler.Instance.SetTestSpeed(it.indexId, "-1");
                 UpdateFunc(it.indexId, "", ResUI.Speedtesting);
 
-                var item = LazyConfig.Instance.GetProfileItem(it.indexId);
+                var item = AppHandler.Instance.GetProfileItem(it.indexId);
                 if (item is null) continue;
 
                 WebProxy webProxy = new(Global.Loopback, it.port);
-                _ = downloadHandle.DownloadDataAsync(url, webProxy, timeout, (bool success, string msg) =>
+                _ = downloadHandle.DownloadDataAsync(url, webProxy, timeout, (success, msg) =>
                 {
                     decimal.TryParse(msg, out decimal dec);
                     if (dec > 0)
@@ -319,7 +318,7 @@ namespace ServiceLib.Handler
 
             if (pid > 0)
             {
-                _coreHandler.CoreStopPid(pid);
+                CoreHandler.Instance.CoreStopPid(pid);
             }
             UpdateFunc("", ResUI.SpeedtestingCompleted);
             ProfileExHandler.Instance.SaveTo();
@@ -334,7 +333,7 @@ namespace ServiceLib.Handler
             await RunSpeedTestMulti();
         }
 
-        private async Task<string> GetRealPingTime(DownloadHandler downloadHandle, IWebProxy webProxy)
+        private async Task<string> GetRealPingTime(DownloadService downloadHandle, IWebProxy webProxy)
         {
             int responseTime = await downloadHandle.GetRealPingTime(_config.speedTestItem.speedPingTestUrl, webProxy, 10);
             //string output = Utile.IsNullOrEmpty(status) ? FormatOut(responseTime, "ms") : status;
@@ -349,7 +348,7 @@ namespace ServiceLib.Handler
             {
                 if (!IPAddress.TryParse(url, out IPAddress? ipAddress))
                 {
-                    IPHostEntry ipHostInfo = System.Net.Dns.GetHostEntry(url);
+                    IPHostEntry ipHostInfo = Dns.GetHostEntry(url);
                     ipAddress = ipHostInfo.AddressList[0];
                 }
 

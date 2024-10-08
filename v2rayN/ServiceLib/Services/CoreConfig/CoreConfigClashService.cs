@@ -1,13 +1,13 @@
-﻿namespace ServiceLib.Handler.CoreConfig
+﻿namespace ServiceLib.Services.CoreConfig
 {
     /// <summary>
     /// Core configuration file processing class
     /// </summary>
-    public class CoreConfigClash
+    public class CoreConfigClashService
     {
         private Config _config;
 
-        public CoreConfigClash(Config config)
+        public CoreConfigClashService(Config config)
         {
             _config = config;
         }
@@ -78,14 +78,14 @@
                 }
 
                 //port
-                fileContent["port"] = LazyConfig.Instance.GetLocalPort(EInboundProtocol.http);
+                fileContent["port"] = AppHandler.Instance.GetLocalPort(EInboundProtocol.http);
                 //socks-port
-                fileContent["socks-port"] = LazyConfig.Instance.GetLocalPort(EInboundProtocol.socks);
+                fileContent["socks-port"] = AppHandler.Instance.GetLocalPort(EInboundProtocol.socks);
                 //log-level
                 fileContent["log-level"] = GetLogLevel(_config.coreBasicItem.loglevel);
 
                 //external-controller
-                fileContent["external-controller"] = $"{Global.Loopback}:{LazyConfig.Instance.StatePort2}";
+                fileContent["external-controller"] = $"{Global.Loopback}:{AppHandler.Instance.StatePort2}";
                 //allow-lan
                 if (_config.inbound[0].allowLANConn)
                 {

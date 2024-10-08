@@ -2,13 +2,13 @@
 using System.Net;
 using System.Net.NetworkInformation;
 
-namespace ServiceLib.Handler.CoreConfig
+namespace ServiceLib.Services.CoreConfig
 {
-    public class CoreConfigSingbox
+    public class CoreConfigSingboxService
     {
         private Config _config;
 
-        public CoreConfigSingbox(Config config)
+        public CoreConfigSingboxService(Config config)
         {
             _config = config;
         }
@@ -120,7 +120,7 @@ namespace ServiceLib.Handler.CoreConfig
                 singboxConfig.inbounds.Clear(); // Remove "proxy" service for speedtest, avoiding port conflicts.
                 singboxConfig.outbounds.RemoveAt(0);
 
-                int httpPort = LazyConfig.Instance.GetLocalPort(EInboundProtocol.speedtest);
+                int httpPort = AppHandler.Instance.GetLocalPort(EInboundProtocol.speedtest);
 
                 foreach (var it in selecteds)
                 {
@@ -132,7 +132,7 @@ namespace ServiceLib.Handler.CoreConfig
                     {
                         continue;
                     }
-                    var item = LazyConfig.Instance.GetProfileItem(it.indexId);
+                    var item = AppHandler.Instance.GetProfileItem(it.indexId);
                     if (it.configType is EConfigType.VMess or EConfigType.VLESS)
                     {
                         if (item is null || Utils.IsNullOrEmpty(item.id) || !Utils.IsGuidByParse(item.id))
@@ -192,7 +192,7 @@ namespace ServiceLib.Handler.CoreConfig
                     {
                         continue;
                     }
-                    if ((it.configType is EConfigType.VLESS or EConfigType.Trojan)
+                    if (it.configType is EConfigType.VLESS or EConfigType.Trojan
                         && item.streamSecurity == Global.StreamSecurityReality
                         && item.publicKey.IsNullOrEmpty())
                     {
@@ -282,7 +282,7 @@ namespace ServiceLib.Handler.CoreConfig
                     {
                         continue;
                     }
-                    var item = LazyConfig.Instance.GetProfileItem(it.indexId);
+                    var item = AppHandler.Instance.GetProfileItem(it.indexId);
                     if (item is null)
                     {
                         continue;
@@ -476,7 +476,7 @@ namespace ServiceLib.Handler.CoreConfig
                 singboxConfig.inbounds = [];
 
                 if (!_config.tunModeItem.enableTun
-                    || (_config.tunModeItem.enableTun && _config.tunModeItem.enableExInbound && _config.runningCoreType == ECoreType.sing_box))
+                    || _config.tunModeItem.enableTun && _config.tunModeItem.enableExInbound && _config.runningCoreType == ECoreType.sing_box)
                 {
                     var inbound = new Inbound4Sbox()
                     {
@@ -486,7 +486,7 @@ namespace ServiceLib.Handler.CoreConfig
                     };
                     singboxConfig.inbounds.Add(inbound);
 
-                    inbound.listen_port = LazyConfig.Instance.GetLocalPort(EInboundProtocol.socks);
+                    inbound.listen_port = AppHandler.Instance.GetLocalPort(EInboundProtocol.socks);
                     inbound.sniff = _config.inbound[0].sniffingEnabled;
                     inbound.sniff_override_destination = _config.inbound[0].routeOnly ? false : _config.inbound[0].sniffingEnabled;
                     inbound.domain_strategy = Utils.IsNullOrEmpty(_config.routingBasicItem.domainStrategy4Singbox) ? null : _config.routingBasicItem.domainStrategy4Singbox;
@@ -600,7 +600,7 @@ namespace ServiceLib.Handler.CoreConfig
                         }
                     case EConfigType.Shadowsocks:
                         {
-                            outbound.method = LazyConfig.Instance.GetShadowsocksSecurities(node).Contains(node.security) ? node.security : Global.None;
+                            outbound.method = AppHandler.Instance.GetShadowsocksSecurities(node).Contains(node.security) ? node.security : Global.None;
                             outbound.password = node.id;
 
                             GenOutboundMux(node, outbound);
@@ -854,7 +854,7 @@ namespace ServiceLib.Handler.CoreConfig
             }
             try
             {
-                var subItem = LazyConfig.Instance.GetSubItem(node.subid);
+                var subItem = AppHandler.Instance.GetSubItem(node.subid);
                 if (subItem is null)
                 {
                     return 0;
@@ -865,7 +865,7 @@ namespace ServiceLib.Handler.CoreConfig
                 var txtOutbound = Utils.GetEmbedText(Global.SingboxSampleOutbound);
 
                 //Previous proxy
-                var prevNode = LazyConfig.Instance.GetProfileItemViaRemarks(subItem.prevProfile);
+                var prevNode = AppHandler.Instance.GetProfileItemViaRemarks(subItem.prevProfile);
                 if (prevNode is not null
                     && prevNode.configType != EConfigType.Custom)
                 {
@@ -878,7 +878,7 @@ namespace ServiceLib.Handler.CoreConfig
                 }
 
                 //Next proxy
-                var nextNode = LazyConfig.Instance.GetProfileItemViaRemarks(subItem.nextProfile);
+                var nextNode = AppHandler.Instance.GetProfileItemViaRemarks(subItem.nextProfile);
                 if (nextNode is not null
                     && nextNode.configType != EConfigType.Custom)
                 {
@@ -992,13 +992,13 @@ namespace ServiceLib.Handler.CoreConfig
             var coreInfo = CoreInfoHandler.Instance.GetCoreInfo();
             foreach (var it in coreInfo)
             {
-                if (it.coreType == ECoreType.v2rayN)
+                if (it.CoreType == ECoreType.v2rayN)
                 {
                     continue;
                 }
-                foreach (var it2 in it.coreExes)
+                foreach (var it2 in it.CoreExes)
                 {
-                    if (!lstDnsExe.Contains(it2) && it.coreType != ECoreType.sing_box)
+                    if (!lstDnsExe.Contains(it2) && it.CoreType != ECoreType.sing_box)
                     {
                         lstDnsExe.Add($"{it2}.exe");
                     }
@@ -1173,7 +1173,7 @@ namespace ServiceLib.Handler.CoreConfig
         {
             try
             {
-                var item = LazyConfig.Instance.GetDNSItem(ECoreType.sing_box);
+                var item = AppHandler.Instance.GetDNSItem(ECoreType.sing_box);
                 var strDNS = string.Empty;
                 if (_config.tunModeItem.enableTun)
                 {
@@ -1260,7 +1260,7 @@ namespace ServiceLib.Handler.CoreConfig
                 singboxConfig.experimental ??= new Experimental4Sbox();
                 singboxConfig.experimental.clash_api = new Clash_Api4Sbox()
                 {
-                    external_controller = $"{Global.Loopback}:{LazyConfig.Instance.StatePort2}",
+                    external_controller = $"{Global.Loopback}:{AppHandler.Instance.StatePort2}",
                 };
             }
 
