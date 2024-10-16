@@ -2,12 +2,8 @@
 using Splat;
 using System.Reactive.Disposables;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Controls.Primitives;
 using System.Windows.Input;
-using System.Windows.Media;
 using System.Windows.Threading;
-using v2rayN.Base;
 using v2rayN.Handler;
 
 namespace v2rayN.Views
@@ -99,11 +95,6 @@ namespace v2rayN.Views
                         tbNotify.Icon = WindowsHandler.Instance.GetNotifyIcon(_config);
                         Application.Current.MainWindow.Icon = WindowsHandler.Instance.GetAppIcon(_config);
                     }), DispatcherPriority.Normal);
-                    break;
-
-                case EViewAction.UpdateSysProxy:
-                    if (obj is null) return false;
-                    SysProxyHandler.UpdateSysProxy(_config, (bool)obj);
                     break;
             }
             return await Task.FromResult(true);
