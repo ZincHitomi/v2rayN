@@ -26,7 +26,6 @@ namespace v2rayN.Views
             _config = AppHandler.Instance.Config;
             ThreadPool.RegisterWaitForSingleObject(App.ProgramStarted, OnProgramStarted, null, -1, false);
 
-            Application.Current.Exit += Current_Exit;
             App.Current.SessionEnding += Current_SessionEnding;
             this.Closing += MainWindow_Closing;
             this.PreviewKeyDown += MainWindow_PreviewKeyDown;
@@ -40,7 +39,6 @@ namespace v2rayN.Views
             ViewModel = new MainWindowViewModel(UpdateViewHandler);
             Locator.CurrentMutable.RegisterLazySingleton(() => ViewModel, typeof(MainWindowViewModel));
 
-            WindowsHandler.Instance.RegisterGlobalHotkey(_config, OnHotkeyHandler, null);
             switch (_config.UiItem.MainGirdOrientation)
             {
                 case EGirdOrientation.Horizontal:
@@ -48,6 +46,7 @@ namespace v2rayN.Views
                     tabMsgView.Content ??= new MsgView();
                     tabClashProxies.Content ??= new ClashProxiesView();
                     tabClashConnections.Content ??= new ClashConnectionsView();
+                    gridMain.Visibility = Visibility.Visible;
                     break;
 
                 case EGirdOrientation.Vertical:
@@ -55,6 +54,7 @@ namespace v2rayN.Views
                     tabMsgView1.Content ??= new MsgView();
                     tabClashProxies1.Content ??= new ClashProxiesView();
                     tabClashConnections1.Content ??= new ClashConnectionsView();
+                    gridMain1.Visibility = Visibility.Visible;
                     break;
 
                 case EGirdOrientation.Tab:
@@ -63,6 +63,7 @@ namespace v2rayN.Views
                     tabMsgView2.Content ??= new MsgView();
                     tabClashProxies2.Content ??= new ClashProxiesView();
                     tabClashConnections2.Content ??= new ClashConnectionsView();
+                    gridMain2.Visibility = Visibility.Visible;
                     break;
             }
             pbTheme.Content ??= new ThemeSettingView();
@@ -101,6 +102,7 @@ namespace v2rayN.Views
                 this.BindCommand(ViewModel, vm => vm.OpenTheFileLocationCmd, v => v.menuOpenTheFileLocation).DisposeWith(disposables);
                 this.BindCommand(ViewModel, vm => vm.RegionalPresetDefaultCmd, v => v.menuRegionalPresetsDefault).DisposeWith(disposables);
                 this.BindCommand(ViewModel, vm => vm.RegionalPresetRussiaCmd, v => v.menuRegionalPresetsRussia).DisposeWith(disposables);
+                this.BindCommand(ViewModel, vm => vm.RegionalPresetIranCmd, v => v.menuRegionalPresetsIran).DisposeWith(disposables);
 
                 this.BindCommand(ViewModel, vm => vm.ReloadCmd, v => v.menuReload).DisposeWith(disposables);
                 this.OneWayBind(ViewModel, vm => vm.BlReloadEnabled, v => v.menuReload.IsEnabled).DisposeWith(disposables);
@@ -108,7 +110,6 @@ namespace v2rayN.Views
                 switch (_config.UiItem.MainGirdOrientation)
                 {
                     case EGirdOrientation.Horizontal:
-                        gridMain.Visibility = Visibility.Visible;
                         this.OneWayBind(ViewModel, vm => vm.ShowClashUI, v => v.tabMsgView.Visibility).DisposeWith(disposables);
                         this.OneWayBind(ViewModel, vm => vm.ShowClashUI, v => v.tabClashProxies.Visibility).DisposeWith(disposables);
                         this.OneWayBind(ViewModel, vm => vm.ShowClashUI, v => v.tabClashConnections.Visibility).DisposeWith(disposables);
@@ -116,7 +117,6 @@ namespace v2rayN.Views
                         break;
 
                     case EGirdOrientation.Vertical:
-                        gridMain1.Visibility = Visibility.Visible;
                         this.OneWayBind(ViewModel, vm => vm.ShowClashUI, v => v.tabMsgView1.Visibility).DisposeWith(disposables);
                         this.OneWayBind(ViewModel, vm => vm.ShowClashUI, v => v.tabClashProxies1.Visibility).DisposeWith(disposables);
                         this.OneWayBind(ViewModel, vm => vm.ShowClashUI, v => v.tabClashConnections1.Visibility).DisposeWith(disposables);
@@ -125,7 +125,6 @@ namespace v2rayN.Views
 
                     case EGirdOrientation.Tab:
                     default:
-                        gridMain2.Visibility = Visibility.Visible;
                         this.OneWayBind(ViewModel, vm => vm.ShowClashUI, v => v.tabClashProxies2.Visibility).DisposeWith(disposables);
                         this.OneWayBind(ViewModel, vm => vm.ShowClashUI, v => v.tabClashConnections2.Visibility).DisposeWith(disposables);
                         this.Bind(ViewModel, vm => vm.TabMainSelectedIndex, v => v.tabMain2.SelectedIndex).DisposeWith(disposables);
@@ -142,6 +141,8 @@ namespace v2rayN.Views
 
             RestoreUI();
             AddHelpMenuItem();
+            WindowsHandler.Instance.RegisterGlobalHotkey(_config, OnHotkeyHandler, null);
+            MessageBus.Current.Listen<string>(EMsgCommand.AppExit.ToString()).Subscribe(StorageUI);
         }
 
         #region Event
@@ -265,11 +266,6 @@ namespace v2rayN.Views
             ShowHideWindow(false);
         }
 
-        private void Current_Exit(object sender, ExitEventArgs e)
-        {
-            StorageUI();
-        }
-
         private async void Current_SessionEnding(object sender, SessionEndingCancelEventArgs e)
         {
             Logging.SaveLog("Current_SessionEnding");
@@ -284,10 +280,10 @@ namespace v2rayN.Views
                 switch (e.Key)
                 {
                     case Key.V:
-                        if (_backupAndRestoreView?.IsVisible == true) return;
-
+                        if (Keyboard.FocusedElement is TextBox) return;
                         var clipboardData = WindowsUtils.GetClipboardData();
-                        ViewModel?.AddServerViaClipboardAsync(clipboardData);
+                        var service = Locator.Current.GetService<MainWindowViewModel>();
+                        if (service != null) _ = service.AddServerViaClipboardAsync(clipboardData);
                         break;
 
                     case Key.S:
@@ -312,12 +308,12 @@ namespace v2rayN.Views
 
         private void menuPromotion_Click(object sender, RoutedEventArgs e)
         {
-            Utils.ProcessStart($"{Utils.Base64Decode(Global.PromotionUrl)}?t={DateTime.Now.Ticks}");
+            ProcUtils.ProcessStart($"{Utils.Base64Decode(Global.PromotionUrl)}?t={DateTime.Now.Ticks}");
         }
 
         private void menuSettingsSetUWP_Click(object sender, RoutedEventArgs e)
         {
-            Utils.ProcessStart(Utils.GetBinPath("EnableLoopback.exe"));
+            ProcUtils.ProcessStart(Utils.GetBinPath("EnableLoopback.exe"));
         }
 
         private async Task ScanScreenTaskAsync()
@@ -409,7 +405,7 @@ namespace v2rayN.Views
             }
         }
 
-        private void StorageUI()
+        private void StorageUI(string? n = null)
         {
             _config.UiItem.MainWidth = Utils.ToInt(this.Width);
             _config.UiItem.MainHeight = Utils.ToInt(this.Height);
@@ -447,7 +443,7 @@ namespace v2rayN.Views
         {
             if (sender is MenuItem item)
             {
-                Utils.ProcessStart(item.Tag.ToString());
+                ProcUtils.ProcessStart(item.Tag.ToString());
             }
         }
 

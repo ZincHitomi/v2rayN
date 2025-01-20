@@ -5,6 +5,8 @@ namespace ServiceLib.Handler
 {
     public static class AutoStartupHandler
     {
+        private static readonly string _tag = "AutoStartupHandler";
+
         public static async Task<bool> UpdateTask(Config config)
         {
             if (Utils.IsWindows())
@@ -25,7 +27,7 @@ namespace ServiceLib.Handler
                     await SetTaskLinux();
                 }
             }
-            else if(Utils.IsOSX())
+            else if (Utils.IsOSX())
             {
                 //TODO
             }
@@ -43,6 +45,8 @@ namespace ServiceLib.Handler
             {
                 AutoStartTaskService(autoRunName, "", "");
             }
+
+            await Task.CompletedTask;
         }
 
         private static async Task SetTaskWindows()
@@ -62,8 +66,9 @@ namespace ServiceLib.Handler
             }
             catch (Exception ex)
             {
-                Logging.SaveLog(ex.Message, ex);
+                Logging.SaveLog(_tag, ex);
             }
+            await Task.CompletedTask;
         }
 
         /// <summary>
@@ -123,8 +128,9 @@ namespace ServiceLib.Handler
             }
             catch (Exception ex)
             {
-                Logging.SaveLog(ex.Message, ex);
+                Logging.SaveLog(_tag, ex);
             }
+            await Task.CompletedTask;
         }
 
         private static async Task SetTaskLinux()
@@ -143,7 +149,7 @@ namespace ServiceLib.Handler
             }
             catch (Exception ex)
             {
-                Logging.SaveLog(ex.Message, ex);
+                Logging.SaveLog(_tag, ex);
             }
         }
 

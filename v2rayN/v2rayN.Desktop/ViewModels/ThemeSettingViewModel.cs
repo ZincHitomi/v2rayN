@@ -6,14 +6,14 @@ using Avalonia.Media;
 using Avalonia.Styling;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
+using Semi.Avalonia;
 using System.Reactive.Linq;
 
 namespace v2rayN.Desktop.ViewModels
 {
     public class ThemeSettingViewModel : MyReactiveObject
     {
-        [Reactive] public bool ColorModeDark { get; set; }
-        [Reactive] public bool FollowSystemTheme { get; set; }
+        [Reactive] public string CurrentTheme { get; set; }
 
         [Reactive] public int CurrentFontSize { get; set; }
 
@@ -31,32 +31,21 @@ namespace v2rayN.Desktop.ViewModels
         {
             ModifyTheme();
             ModifyFontFamily();
+            ModifyFontSize();
         }
 
         private void BindingUI()
         {
-            ColorModeDark = _config.UiItem.ColorModeDark;
-            FollowSystemTheme = _config.UiItem.FollowSystemTheme;
+            CurrentTheme = _config.UiItem.CurrentTheme;
             CurrentFontSize = _config.UiItem.CurrentFontSize;
             CurrentLanguage = _config.UiItem.CurrentLanguage;
 
-            this.WhenAnyValue(x => x.ColorModeDark)
+            this.WhenAnyValue(x => x.CurrentTheme)
                 .Subscribe(c =>
                 {
-                    if (_config.UiItem.ColorModeDark != ColorModeDark)
+                    if (_config.UiItem.CurrentTheme != CurrentTheme)
                     {
-                        _config.UiItem.ColorModeDark = ColorModeDark;
-                        ModifyTheme();
-                        ConfigHandler.SaveConfig(_config);
-                    }
-                });
-            this.WhenAnyValue(x => x.FollowSystemTheme,
-                    y => y == true)
-                .Subscribe(c =>
-                {
-                    if (_config.UiItem.FollowSystemTheme != FollowSystemTheme)
-                    {
-                        _config.UiItem.FollowSystemTheme = FollowSystemTheme;
+                        _config.UiItem.CurrentTheme = CurrentTheme;
                         ModifyTheme();
                         ConfigHandler.SaveConfig(_config);
                     }
@@ -67,11 +56,10 @@ namespace v2rayN.Desktop.ViewModels
                     y => y > 0)
                 .Subscribe(c =>
                 {
-                    if (CurrentFontSize >= Global.MinFontSize)
+                    if (_config.UiItem.CurrentFontSize != CurrentFontSize && CurrentFontSize >= Global.MinFontSize)
                     {
                         _config.UiItem.CurrentFontSize = CurrentFontSize;
-                        double size = CurrentFontSize;
-                        ModifyFontSize(size);
+                        ModifyFontSize();
                         ConfigHandler.SaveConfig(_config);
                     }
                 });
@@ -96,12 +84,24 @@ namespace v2rayN.Desktop.ViewModels
             var app = Application.Current;
             if (app is not null)
             {
-                app.RequestedThemeVariant = FollowSystemTheme ? ThemeVariant.Default : (ColorModeDark ? ThemeVariant.Dark : ThemeVariant.Light);
+                app.RequestedThemeVariant = CurrentTheme switch
+                {
+                    nameof(ETheme.Dark) => ThemeVariant.Dark,
+                    nameof(ETheme.Light) => ThemeVariant.Light,
+                    nameof(ETheme.Aquatic) => SemiTheme.Aquatic,
+                    nameof(ETheme.Desert) => SemiTheme.Desert,
+                    nameof(ETheme.Dusk) => SemiTheme.Dusk,
+                    nameof(ETheme.NightSky) => SemiTheme.NightSky,
+                    _ => ThemeVariant.Default,
+                };
             }
         }
 
-        private void ModifyFontSize(double size)
+        private void ModifyFontSize()
         {
+            double size = CurrentFontSize;
+            if (size < Global.MinFontSize) return;
+
             Style style = new(x => Selectors.Or(
                 x.OfType<Button>(),
                 x.OfType<TextBox>(),
@@ -109,7 +109,8 @@ namespace v2rayN.Desktop.ViewModels
                 x.OfType<Menu>(),
                 x.OfType<ContextMenu>(),
                 x.OfType<DataGridRow>(),
-                x.OfType<ListBoxItem>()
+                x.OfType<ListBoxItem>(),
+                x.OfType<HeaderedContentControl>()
             ));
             style.Add(new Setter()
             {
@@ -137,6 +138,7 @@ namespace v2rayN.Desktop.ViewModels
                     x.OfType<ContextMenu>(),
                     x.OfType<DataGridRow>(),
                     x.OfType<ListBoxItem>(),
+                    x.OfType<HeaderedContentControl>(),
                     x.OfType<WindowNotificationManager>()
                 ));
                 style.Add(new Setter()

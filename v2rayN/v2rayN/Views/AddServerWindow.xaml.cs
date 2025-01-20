@@ -20,20 +20,10 @@ namespace v2rayN.Views
 
             ViewModel = new AddServerViewModel(profileItem, UpdateViewHandler);
 
-            if (profileItem.ConfigType == EConfigType.VLESS)
+            Global.CoreTypes.ForEach(it =>
             {
-                Global.CoreTypes4VLESS.ForEach(it =>
-                {
-                    cmbCoreType.Items.Add(it);
-                });
-            }
-            else
-            {
-                Global.CoreTypes.ForEach(it =>
-                {
-                    cmbCoreType.Items.Add(it);
-                });
-            }
+                cmbCoreType.Items.Add(it);
+            });
             cmbCoreType.Items.Add(string.Empty);
 
             cmbStreamSecurity.Items.Add(string.Empty);
@@ -220,7 +210,7 @@ namespace v2rayN.Views
             });
 
             this.Title = $"{profileItem.ConfigType}";
-            WindowsUtils.SetDarkBorder(this, AppHandler.Instance.Config.UiItem.FollowSystemTheme ? WindowsUtils.IsDarkTheme() : AppHandler.Instance.Config.UiItem.ColorModeDark);
+            WindowsUtils.SetDarkBorder(this, AppHandler.Instance.Config.UiItem.CurrentTheme);
         }
 
         private async Task<bool> UpdateViewHandler(EViewAction action, object? obj)

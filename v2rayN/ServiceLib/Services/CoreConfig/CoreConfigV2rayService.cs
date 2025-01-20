@@ -7,6 +7,7 @@ namespace ServiceLib.Services.CoreConfig
     public class CoreConfigV2rayService
     {
         private Config _config;
+        private static readonly string _tag = "CoreConfigV2rayService";
 
         public CoreConfigV2rayService(Config config)
         {
@@ -55,7 +56,7 @@ namespace ServiceLib.Services.CoreConfig
 
                 await GenRouting(v2rayConfig);
 
-                await GenOutbound(node, v2rayConfig.outbounds[0]);
+                await GenOutbound(node, v2rayConfig.outbounds.First());
 
                 await GenMoreOutbounds(node, v2rayConfig);
 
@@ -70,7 +71,7 @@ namespace ServiceLib.Services.CoreConfig
             }
             catch (Exception ex)
             {
-                Logging.SaveLog("GenerateClientConfig4V2ray", ex);
+                Logging.SaveLog(_tag, ex);
                 ret.Msg = ResUI.FailedGenDefaultConfiguration;
                 return ret;
             }
@@ -153,7 +154,7 @@ namespace ServiceLib.Services.CoreConfig
                     var outbound = JsonUtils.Deserialize<Outbounds4Ray>(txtOutbound);
                     await GenOutbound(item, outbound);
                     outbound.tag = $"{Global.ProxyTag}-{tagProxy.Count + 1}";
-                    v2rayConfig.outbounds.Add(outbound);
+                    v2rayConfig.outbounds.Insert(0, outbound);
                     tagProxy.Add(outbound.tag);
                 }
                 if (tagProxy.Count <= 0)
@@ -181,15 +182,12 @@ namespace ServiceLib.Services.CoreConfig
                         rule.balancerTag = balancer.tag;
                     }
                 }
-                else
+                v2rayConfig.routing.rules.Add(new()
                 {
-                    v2rayConfig.routing.rules.Add(new()
-                    {
-                        network = "tcp,udp",
-                        balancerTag = balancer.tag,
-                        type = "field"
-                    });
-                }
+                    network = "tcp,udp",
+                    balancerTag = balancer.tag,
+                    type = "field"
+                });
 
                 ret.Success = true;
                 ret.Data = JsonUtils.Serialize(v2rayConfig);
@@ -197,7 +195,7 @@ namespace ServiceLib.Services.CoreConfig
             }
             catch (Exception ex)
             {
-                Logging.SaveLog(ex.Message, ex);
+                Logging.SaveLog(_tag, ex);
                 ret.Msg = ResUI.FailedGenDefaultConfiguration;
                 return ret;
             }
@@ -240,7 +238,7 @@ namespace ServiceLib.Services.CoreConfig
                 }
                 catch (Exception ex)
                 {
-                    Logging.SaveLog(ex.Message, ex);
+                    Logging.SaveLog(_tag, ex);
                 }
 
                 await GenLog(v2rayConfig);
@@ -248,7 +246,7 @@ namespace ServiceLib.Services.CoreConfig
                 v2rayConfig.outbounds.Clear();
                 v2rayConfig.routing.rules.Clear();
 
-                var httpPort = AppHandler.Instance.GetLocalPort(EInboundProtocol.speedtest);
+                var initPort = AppHandler.Instance.GetLocalPort(EInboundProtocol.speedtest);
 
                 foreach (var it in selecteds)
                 {
@@ -270,8 +268,8 @@ namespace ServiceLib.Services.CoreConfig
                     }
 
                     //find unused port
-                    var port = httpPort;
-                    for (var k = httpPort; k < Global.MaxPort; k++)
+                    var port = initPort;
+                    for (var k = initPort; k < Global.MaxPort; k++)
                     {
                         if (lstIpEndPoints?.FindIndex(_it => _it.Port == k) >= 0)
                         {
@@ -283,7 +281,7 @@ namespace ServiceLib.Services.CoreConfig
                         }
                         //found
                         port = k;
-                        httpPort = port + 1;
+                        initPort = port + 1;
                         break;
                     }
 
@@ -322,7 +320,7 @@ namespace ServiceLib.Services.CoreConfig
                     {
                         listen = Global.Loopback,
                         port = port,
-                        protocol = EInboundProtocol.http.ToString(),
+                        protocol = EInboundProtocol.socks.ToString(),
                     };
                     inbound.tag = inbound.protocol + inbound.port.ToString();
                     v2rayConfig.inbounds.Add(inbound);
@@ -349,7 +347,7 @@ namespace ServiceLib.Services.CoreConfig
             }
             catch (Exception ex)
             {
-                Logging.SaveLog(ex.Message, ex);
+                Logging.SaveLog(_tag, ex);
                 ret.Msg = ResUI.FailedGenDefaultConfiguration;
                 return ret;
             }
@@ -359,7 +357,7 @@ namespace ServiceLib.Services.CoreConfig
 
         #region private gen function
 
-        public async Task<int> GenLog(V2rayConfig v2rayConfig)
+        private async Task<int> GenLog(V2rayConfig v2rayConfig)
         {
             try
             {
@@ -379,59 +377,53 @@ namespace ServiceLib.Services.CoreConfig
             }
             catch (Exception ex)
             {
-                Logging.SaveLog(ex.Message, ex);
+                Logging.SaveLog(_tag, ex);
             }
-            return 0;
+            return await Task.FromResult(0);
         }
 
-        public async Task<int> GenInbounds(V2rayConfig v2rayConfig)
+        private async Task<int> GenInbounds(V2rayConfig v2rayConfig)
         {
             try
             {
                 var listen = "0.0.0.0";
                 v2rayConfig.inbounds = [];
 
-                Inbounds4Ray? inbound = GetInbound(_config.Inbound[0], EInboundProtocol.socks, true);
+                var inbound = GetInbound(_config.Inbound.First(), EInboundProtocol.socks, true);
                 v2rayConfig.inbounds.Add(inbound);
 
-                //http
-                Inbounds4Ray? inbound2 = GetInbound(_config.Inbound[0], EInboundProtocol.http, false);
-                v2rayConfig.inbounds.Add(inbound2);
-
-                if (_config.Inbound[0].AllowLANConn)
+                if (_config.Inbound.First().SecondLocalPortEnabled)
                 {
-                    if (_config.Inbound[0].NewPort4LAN)
+                    var inbound2 = GetInbound(_config.Inbound.First(), EInboundProtocol.socks2, true);
+                    v2rayConfig.inbounds.Add(inbound2);
+                }
+
+                if (_config.Inbound.First().AllowLANConn)
+                {
+                    if (_config.Inbound.First().NewPort4LAN)
                     {
-                        var inbound3 = GetInbound(_config.Inbound[0], EInboundProtocol.socks2, true);
+                        var inbound3 = GetInbound(_config.Inbound.First(), EInboundProtocol.socks3, true);
                         inbound3.listen = listen;
                         v2rayConfig.inbounds.Add(inbound3);
 
-                        var inbound4 = GetInbound(_config.Inbound[0], EInboundProtocol.http2, false);
-                        inbound4.listen = listen;
-                        v2rayConfig.inbounds.Add(inbound4);
-
                         //auth
-                        if (Utils.IsNotEmpty(_config.Inbound[0].User) && Utils.IsNotEmpty(_config.Inbound[0].Pass))
+                        if (Utils.IsNotEmpty(_config.Inbound.First().User) && Utils.IsNotEmpty(_config.Inbound.First().Pass))
                         {
                             inbound3.settings.auth = "password";
-                            inbound3.settings.accounts = new List<AccountsItem4Ray> { new AccountsItem4Ray() { user = _config.Inbound[0].User, pass = _config.Inbound[0].Pass } };
-
-                            inbound4.settings.auth = "password";
-                            inbound4.settings.accounts = new List<AccountsItem4Ray> { new AccountsItem4Ray() { user = _config.Inbound[0].User, pass = _config.Inbound[0].Pass } };
+                            inbound3.settings.accounts = new List<AccountsItem4Ray> { new AccountsItem4Ray() { user = _config.Inbound.First().User, pass = _config.Inbound.First().Pass } };
                         }
                     }
                     else
                     {
                         inbound.listen = listen;
-                        inbound2.listen = listen;
                     }
                 }
             }
             catch (Exception ex)
             {
-                Logging.SaveLog(ex.Message, ex);
+                Logging.SaveLog(_tag, ex);
             }
-            return 0;
+            return await Task.FromResult(0);
         }
 
         private Inbounds4Ray GetInbound(InItem inItem, EInboundProtocol protocol, bool bSocks)
@@ -449,7 +441,7 @@ namespace ServiceLib.Services.CoreConfig
             }
             inbound.tag = protocol.ToString();
             inbound.port = inItem.LocalPort + (int)protocol;
-            inbound.protocol = bSocks ? EInboundProtocol.socks.ToString() : EInboundProtocol.http.ToString();
+            inbound.protocol = EInboundProtocol.socks.ToString();
             inbound.settings.udp = inItem.UdpEnabled;
             inbound.sniffing.enabled = inItem.SniffingEnabled;
             inbound.sniffing.destOverride = inItem.DestOverride;
@@ -488,12 +480,12 @@ namespace ServiceLib.Services.CoreConfig
             }
             catch (Exception ex)
             {
-                Logging.SaveLog(ex.Message, ex);
+                Logging.SaveLog(_tag, ex);
             }
             return 0;
         }
 
-        public async Task<int> GenRoutingUserRule(RulesItem4Ray? rule, V2rayConfig v2rayConfig)
+        private async Task<int> GenRoutingUserRule(RulesItem4Ray? rule, V2rayConfig v2rayConfig)
         {
             try
             {
@@ -566,15 +558,16 @@ namespace ServiceLib.Services.CoreConfig
             }
             catch (Exception ex)
             {
-                Logging.SaveLog(ex.Message, ex);
+                Logging.SaveLog(_tag, ex);
             }
-            return 0;
+            return await Task.FromResult(0);
         }
 
-        public async Task<int> GenOutbound(ProfileItem node, Outbounds4Ray outbound)
+        private async Task<int> GenOutbound(ProfileItem node, Outbounds4Ray outbound)
         {
             try
             {
+                var muxEnabled = _config.CoreBasicItem.MuxEnabled;
                 switch (node.ConfigType)
                 {
                     case EConfigType.VMess:
@@ -587,7 +580,7 @@ namespace ServiceLib.Services.CoreConfig
                             }
                             else
                             {
-                                vnextItem = outbound.settings.vnext[0];
+                                vnextItem = outbound.settings.vnext.First();
                             }
                             vnextItem.address = node.Address;
                             vnextItem.port = node.Port;
@@ -600,7 +593,7 @@ namespace ServiceLib.Services.CoreConfig
                             }
                             else
                             {
-                                usersItem = vnextItem.users[0];
+                                usersItem = vnextItem.users.First();
                             }
                             //远程服务器用户ID
                             usersItem.id = node.Id;
@@ -615,7 +608,7 @@ namespace ServiceLib.Services.CoreConfig
                                 usersItem.security = Global.DefaultSecurity;
                             }
 
-                            await GenOutboundMux(node, outbound, _config.CoreBasicItem.MuxEnabled);
+                            await GenOutboundMux(node, outbound, muxEnabled, muxEnabled);
 
                             outbound.settings.servers = null;
                             break;
@@ -630,7 +623,7 @@ namespace ServiceLib.Services.CoreConfig
                             }
                             else
                             {
-                                serversItem = outbound.settings.servers[0];
+                                serversItem = outbound.settings.servers.First();
                             }
                             serversItem.address = node.Address;
                             serversItem.port = node.Port;
@@ -640,7 +633,7 @@ namespace ServiceLib.Services.CoreConfig
                             serversItem.ota = false;
                             serversItem.level = 1;
 
-                            await GenOutboundMux(node, outbound, false);
+                            await GenOutboundMux(node, outbound);
 
                             outbound.settings.vnext = null;
                             break;
@@ -656,7 +649,7 @@ namespace ServiceLib.Services.CoreConfig
                             }
                             else
                             {
-                                serversItem = outbound.settings.servers[0];
+                                serversItem = outbound.settings.servers.First();
                             }
                             serversItem.address = node.Address;
                             serversItem.port = node.Port;
@@ -676,7 +669,7 @@ namespace ServiceLib.Services.CoreConfig
                                 serversItem.users = new List<SocksUsersItem4Ray>() { socksUsersItem };
                             }
 
-                            await GenOutboundMux(node, outbound, false);
+                            await GenOutboundMux(node, outbound);
 
                             outbound.settings.vnext = null;
                             break;
@@ -691,7 +684,7 @@ namespace ServiceLib.Services.CoreConfig
                             }
                             else
                             {
-                                vnextItem = outbound.settings.vnext[0];
+                                vnextItem = outbound.settings.vnext.First();
                             }
                             vnextItem.address = node.Address;
                             vnextItem.port = node.Port;
@@ -704,29 +697,21 @@ namespace ServiceLib.Services.CoreConfig
                             }
                             else
                             {
-                                usersItem = vnextItem.users[0];
+                                usersItem = vnextItem.users.First();
                             }
                             usersItem.id = node.Id;
                             usersItem.email = Global.UserEMail;
                             usersItem.encryption = node.Security;
 
-                            await GenOutboundMux(node, outbound, _config.CoreBasicItem.MuxEnabled);
-
-                            if (node.StreamSecurity == Global.StreamSecurityReality
-                                || node.StreamSecurity == Global.StreamSecurity)
+                            if (node.Flow.IsNullOrEmpty())
                             {
-                                if (Utils.IsNotEmpty(node.Flow))
-                                {
-                                    usersItem.flow = node.Flow;
-
-                                    await GenOutboundMux(node, outbound, false);
-                                }
+                                await GenOutboundMux(node, outbound, muxEnabled, muxEnabled);
                             }
-                            if (node.StreamSecurity == Global.StreamSecurityReality && Utils.IsNullOrEmpty(node.Flow))
+                            else
                             {
-                                await GenOutboundMux(node, outbound, _config.CoreBasicItem.MuxEnabled);
+                                usersItem.flow = node.Flow;
+                                await GenOutboundMux(node, outbound, false, muxEnabled);
                             }
-
                             outbound.settings.servers = null;
                             break;
                         }
@@ -740,7 +725,7 @@ namespace ServiceLib.Services.CoreConfig
                             }
                             else
                             {
-                                serversItem = outbound.settings.servers[0];
+                                serversItem = outbound.settings.servers.First();
                             }
                             serversItem.address = node.Address;
                             serversItem.port = node.Port;
@@ -749,7 +734,7 @@ namespace ServiceLib.Services.CoreConfig
                             serversItem.ota = false;
                             serversItem.level = 1;
 
-                            await GenOutboundMux(node, outbound, false);
+                            await GenOutboundMux(node, outbound);
 
                             outbound.settings.vnext = null;
                             break;
@@ -757,47 +742,51 @@ namespace ServiceLib.Services.CoreConfig
                 }
 
                 outbound.protocol = Global.ProtocolTypes[node.ConfigType];
-                await GenBoundStreamSettings(node, outbound.streamSettings);
+                await GenBoundStreamSettings(node, outbound);
             }
             catch (Exception ex)
             {
-                Logging.SaveLog(ex.Message, ex);
+                Logging.SaveLog(_tag, ex);
             }
             return 0;
         }
 
-        public async Task<int> GenOutboundMux(ProfileItem node, Outbounds4Ray outbound, bool enabled)
+        private async Task<int> GenOutboundMux(ProfileItem node, Outbounds4Ray outbound, bool enabledTCP = false, bool enabledUDP = false)
         {
             try
             {
-                if (enabled)
+                outbound.mux.enabled = false;
+                outbound.mux.concurrency = -1;
+
+                if (enabledTCP)
                 {
                     outbound.mux.enabled = true;
                     outbound.mux.concurrency = _config.Mux4RayItem.Concurrency;
+                }
+                else if (enabledUDP)
+                {
+                    outbound.mux.enabled = true;
                     outbound.mux.xudpConcurrency = _config.Mux4RayItem.XudpConcurrency;
                     outbound.mux.xudpProxyUDP443 = _config.Mux4RayItem.XudpProxyUDP443;
-                }
-                else
-                {
-                    outbound.mux.enabled = false;
-                    outbound.mux.concurrency = -1;
                 }
             }
             catch (Exception ex)
             {
-                Logging.SaveLog(ex.Message, ex);
+                Logging.SaveLog(_tag, ex);
             }
-            return 0;
+            return await Task.FromResult(0);
         }
 
-        public async Task<int> GenBoundStreamSettings(ProfileItem node, StreamSettings4Ray streamSettings)
+        private async Task<int> GenBoundStreamSettings(ProfileItem node, Outbounds4Ray outbound)
         {
             try
             {
+                var streamSettings = outbound.streamSettings;
                 streamSettings.network = node.GetNetwork();
-                string host = node.RequestHost.TrimEx();
-                string sni = node.Sni;
-                string useragent = "";
+                var host = node.RequestHost.TrimEx();
+                var path = node.Path.TrimEx();
+                var sni = node.Sni.TrimEx();
+                var useragent = "";
                 if (!_config.CoreBasicItem.DefUserAgent.IsNullOrEmpty())
                 {
                     try
@@ -870,9 +859,9 @@ namespace ServiceLib.Services.CoreConfig
                         {
                             type = node.HeaderType
                         };
-                        if (Utils.IsNotEmpty(node.Path))
+                        if (Utils.IsNotEmpty(path))
                         {
-                            kcpSettings.seed = node.Path;
+                            kcpSettings.seed = path;
                         }
                         streamSettings.kcpSettings = kcpSettings;
                         break;
@@ -880,9 +869,10 @@ namespace ServiceLib.Services.CoreConfig
                     case nameof(ETransport.ws):
                         WsSettings4Ray wsSettings = new();
                         wsSettings.headers = new Headers4Ray();
-                        string path = node.Path;
+
                         if (Utils.IsNotEmpty(host))
                         {
+                            wsSettings.host = host;
                             wsSettings.headers.Host = host;
                         }
                         if (Utils.IsNotEmpty(path))
@@ -900,9 +890,9 @@ namespace ServiceLib.Services.CoreConfig
                     case nameof(ETransport.httpupgrade):
                         HttpupgradeSettings4Ray httpupgradeSettings = new();
 
-                        if (Utils.IsNotEmpty(node.Path))
+                        if (Utils.IsNotEmpty(path))
                         {
-                            httpupgradeSettings.path = node.Path;
+                            httpupgradeSettings.path = path;
                         }
                         if (Utils.IsNotEmpty(host))
                         {
@@ -914,16 +904,11 @@ namespace ServiceLib.Services.CoreConfig
                     //xhttp
                     case nameof(ETransport.xhttp):
                         streamSettings.network = ETransport.xhttp.ToString();
-                        XhttpSettings4Ray xhttpSettings = new()
-                        {
-                            scMaxEachPostBytes = "500000-1000000",
-                            scMaxConcurrentPosts = "50-100",
-                            scMinPostsIntervalMs = "30-50"
-                        };
+                        XhttpSettings4Ray xhttpSettings = new();
 
-                        if (Utils.IsNotEmpty(node.Path))
+                        if (Utils.IsNotEmpty(path))
                         {
-                            xhttpSettings.path = node.Path;
+                            xhttpSettings.path = path;
                         }
                         if (Utils.IsNotEmpty(host))
                         {
@@ -939,6 +924,7 @@ namespace ServiceLib.Services.CoreConfig
                         }
 
                         streamSettings.xhttpSettings = xhttpSettings;
+                        await GenOutboundMux(node, outbound);
 
                         break;
                     //h2
@@ -949,7 +935,7 @@ namespace ServiceLib.Services.CoreConfig
                         {
                             httpSettings.host = Utils.String2List(host);
                         }
-                        httpSettings.path = node.Path;
+                        httpSettings.path = path;
 
                         streamSettings.httpSettings = httpSettings;
 
@@ -959,7 +945,7 @@ namespace ServiceLib.Services.CoreConfig
                         QuicSettings4Ray quicsettings = new()
                         {
                             security = host,
-                            key = node.Path,
+                            key = path,
                             header = new Header4Ray
                             {
                                 type = node.HeaderType
@@ -983,7 +969,7 @@ namespace ServiceLib.Services.CoreConfig
                         GrpcSettings4Ray grpcSettings = new()
                         {
                             authority = Utils.IsNullOrEmpty(host) ? null : host,
-                            serviceName = node.Path,
+                            serviceName = path,
                             multiMode = node.HeaderType == Global.GrpcMultiMode,
                             idle_timeout = _config.GrpcItem.IdleTimeout,
                             health_check_timeout = _config.GrpcItem.HealthCheckTimeout,
@@ -1013,9 +999,9 @@ namespace ServiceLib.Services.CoreConfig
                             request = request.Replace("$requestUserAgent$", $"{useragent.AppendQuotes()}");
                             //Path
                             string pathHttp = @"/";
-                            if (Utils.IsNotEmpty(node.Path))
+                            if (Utils.IsNotEmpty(path))
                             {
-                                string[] arrPath = node.Path.Split(',');
+                                string[] arrPath = path.Split(',');
                                 pathHttp = string.Join(",".AppendQuotes(), arrPath);
                             }
                             request = request.Replace("$requestPath$", $"{pathHttp.AppendQuotes()}");
@@ -1028,12 +1014,12 @@ namespace ServiceLib.Services.CoreConfig
             }
             catch (Exception ex)
             {
-                Logging.SaveLog(ex.Message, ex);
+                Logging.SaveLog(_tag, ex);
             }
             return 0;
         }
 
-        public async Task<int> GenDns(ProfileItem? node, V2rayConfig v2rayConfig)
+        private async Task<int> GenDns(ProfileItem? node, V2rayConfig v2rayConfig)
         {
             try
             {
@@ -1048,9 +1034,13 @@ namespace ServiceLib.Services.CoreConfig
                 //Outbound Freedom domainStrategy
                 if (Utils.IsNotEmpty(domainStrategy4Freedom))
                 {
-                    var outbound = v2rayConfig.outbounds[1];
-                    outbound.settings.domainStrategy = domainStrategy4Freedom;
-                    outbound.settings.userLevel = 0;
+                    var outbound = v2rayConfig.outbounds.FirstOrDefault(t => t is { protocol: "freedom", tag: Global.DirectTag });
+                    if (outbound != null)
+                    {
+                        outbound.settings = new();
+                        outbound.settings.domainStrategy = domainStrategy4Freedom;
+                        outbound.settings.userLevel = 0;
+                    }
                 }
 
                 var obj = JsonUtils.ParseJson(normalDNS);
@@ -1091,12 +1081,12 @@ namespace ServiceLib.Services.CoreConfig
             }
             catch (Exception ex)
             {
-                Logging.SaveLog(ex.Message, ex);
+                Logging.SaveLog(_tag, ex);
             }
             return 0;
         }
 
-        public async Task<int> GenDnsDomains(ProfileItem? node, JsonNode dns, DNSItem? dNSItem)
+        private async Task<int> GenDnsDomains(ProfileItem? node, JsonNode dns, DNSItem? dNSItem)
         {
             if (node == null)
             { return 0; }
@@ -1113,12 +1103,12 @@ namespace ServiceLib.Services.CoreConfig
                     servers.AsArray().Add(JsonUtils.SerializeToNode(dnsServer));
                 }
             }
-            return 0;
+            return await Task.FromResult(0);
         }
 
-        public async Task<int> GenStatistic(V2rayConfig v2rayConfig)
+        private async Task<int> GenStatistic(V2rayConfig v2rayConfig)
         {
-            if (_config.GuiItem.EnableStatistics)
+            if (_config.GuiItem.EnableStatistics || _config.GuiItem.DisplayRealTimeSpeed)
             {
                 string tag = EInboundProtocol.api.ToString();
                 Metrics4Ray apiObj = new();
@@ -1160,14 +1150,14 @@ namespace ServiceLib.Services.CoreConfig
                     v2rayConfig.routing.rules.Add(apiRoutingRule);
                 }
             }
-            return 0;
+            return await Task.FromResult(0);
         }
 
         private async Task<int> GenMoreOutbounds(ProfileItem node, V2rayConfig v2rayConfig)
         {
             //fragment proxy
             if (_config.CoreBasicItem.EnableFragment
-                && Utils.IsNotEmpty(v2rayConfig.outbounds[0].streamSettings?.security))
+                && Utils.IsNotEmpty(v2rayConfig.outbounds.First().streamSettings?.security))
             {
                 var fragmentOutbound = new Outbounds4Ray
                 {
@@ -1177,15 +1167,15 @@ namespace ServiceLib.Services.CoreConfig
                     {
                         fragment = new()
                         {
-                            packets = "tlshello",
-                            length = "100-200",
-                            interval = "10-20"
+                            packets = _config.Fragment4RayItem?.Packets,
+                            length = _config.Fragment4RayItem?.Length,
+                            interval = _config.Fragment4RayItem?.Interval
                         }
                     }
                 };
 
                 v2rayConfig.outbounds.Add(fragmentOutbound);
-                v2rayConfig.outbounds[0].streamSettings.sockopt = new()
+                v2rayConfig.outbounds.First().streamSettings.sockopt = new()
                 {
                     dialerProxy = fragmentOutbound.tag
                 };
@@ -1205,7 +1195,7 @@ namespace ServiceLib.Services.CoreConfig
                 }
 
                 //current proxy
-                var outbound = v2rayConfig.outbounds[0];
+                var outbound = v2rayConfig.outbounds.First();
                 var txtOutbound = Utils.GetEmbedText(Global.V2raySampleOutbound);
 
                 //Previous proxy
@@ -1249,7 +1239,7 @@ namespace ServiceLib.Services.CoreConfig
             }
             catch (Exception ex)
             {
-                Logging.SaveLog(ex.Message, ex);
+                Logging.SaveLog(_tag, ex);
             }
 
             return 0;
