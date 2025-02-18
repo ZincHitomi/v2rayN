@@ -1,4 +1,4 @@
-﻿namespace ServiceLib
+namespace ServiceLib
 {
     public class Global
     {
@@ -7,17 +7,8 @@
         public const string AppName = "v2rayN";
         public const string GithubUrl = "https://github.com";
         public const string GithubApiUrl = "https://api.github.com/repos";
-        public const string V2flyCoreUrl = "https://github.com/v2fly/v2ray-core/releases";
-        public const string XrayCoreUrl = "https://github.com/XTLS/Xray-core/releases";
-        public const string NUrl = @"https://github.com/2dust/v2rayN/releases";
-        public const string MihomoCoreUrl = "https://github.com/MetaCubeX/mihomo/releases";
-        public const string HysteriaCoreUrl = "https://github.com/apernet/hysteria/releases";
-        public const string NaiveproxyCoreUrl = "https://github.com/klzgrad/naiveproxy/releases";
-        public const string TuicCoreUrl = "https://github.com/EAimTY/tuic/releases";
-        public const string SingboxCoreUrl = "https://github.com/SagerNet/sing-box/releases";
         public const string GeoUrl = "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/{0}.dat";
         public const string SpeedPingTestUrl = @"https://www.google.com/generate_204";
-        public const string JuicityCoreUrl = "https://github.com/juicity/juicity/releases";
         public const string SingboxRulesetUrl = @"https://raw.githubusercontent.com/2dust/sing-box-rules/rule-set-{0}/{1}.srs";
         public const string IPAPIUrl = "https://api.ip.sb/geoip";
 
@@ -25,7 +16,7 @@
         public const string ConfigFileName = "guiNConfig.json";
         public const string CoreConfigFileName = "config.json";
         public const string CorePreConfigFileName = "configPre.json";
-        public const string CoreSpeedtestConfigFileName = "configSpeedtest.json";
+        public const string CoreSpeedtestConfigFileName = "configTest{0}.json";
         public const string CoreMultipleLoadConfigFileName = "configMultipleLoad.json";
         public const string ClashMixinConfigFileName = "Mixin.yaml";
 
@@ -73,14 +64,13 @@
         public const string GrpcGunMode = "gun";
         public const string GrpcMultiMode = "multi";
         public const int MaxPort = 65536;
-        public const string DelayUnit = "";
-        public const string SpeedUnit = "";
         public const int MinFontSize = 8;
         public const string RebootAs = "rebootas";
         public const string AvaAssets = "avares://v2rayN/Assets/";
         public const string LocalAppData = "V2RAYN_LOCAL_APPLICATION_DATA";
         public const string V2RayLocalAsset = "V2RAY_LOCATION_ASSET";
         public const string XrayLocalAsset = "XRAY_LOCATION_ASSET";
+        public const int SpeedTestPageSize = 1000;
 
         public static readonly List<string> IEProxyProtocols =
         [
@@ -113,10 +103,10 @@
 
         public static readonly List<string> SpeedTestUrls =
         [
-            @"https://speed.cloudflare.com/__down?bytes=100000000",
-            @"https://speed.cloudflare.com/__down?bytes=50000000",
+            @"https://cachefly.cachefly.net/50mb.test",
             @"https://speed.cloudflare.com/__down?bytes=10000000",
-            @"https://cachefly.cachefly.net/50mb.test"
+            @"https://speed.cloudflare.com/__down?bytes=50000000",
+            @"https://speed.cloudflare.com/__down?bytes=100000000",
         ];
 
         public static readonly List<string> SpeedPingTestUrls =
@@ -168,27 +158,27 @@
 
         public static readonly Dictionary<EConfigType, string> ProtocolShares = new()
         {
-            {EConfigType.VMess,"vmess://"},
-            {EConfigType.Shadowsocks,"ss://"},
-            {EConfigType.SOCKS,"socks://"},
-            {EConfigType.VLESS,"vless://"},
-            {EConfigType.Trojan,"trojan://"},
-            {EConfigType.Hysteria2,"hysteria2://"},
-            {EConfigType.TUIC,"tuic://"},
-            {EConfigType.WireGuard,"wireguard://"}
+            { EConfigType.VMess, "vmess://" },
+            { EConfigType.Shadowsocks, "ss://" },
+            { EConfigType.SOCKS, "socks://" },
+            { EConfigType.VLESS, "vless://" },
+            { EConfigType.Trojan, "trojan://" },
+            { EConfigType.Hysteria2, "hysteria2://" },
+            { EConfigType.TUIC, "tuic://" },
+            { EConfigType.WireGuard, "wireguard://" }
         };
 
         public static readonly Dictionary<EConfigType, string> ProtocolTypes = new()
         {
-            {EConfigType.VMess,"vmess"},
-            {EConfigType.Shadowsocks,"shadowsocks"},
-            {EConfigType.SOCKS,"socks"},
-            {EConfigType.HTTP,"http"},
-            {EConfigType.VLESS,"vless"},
-            {EConfigType.Trojan,"trojan"},
-            {EConfigType.Hysteria2,"hysteria2"},
-            {EConfigType.TUIC,"tuic"},
-            {EConfigType.WireGuard,"wireguard"}
+            { EConfigType.VMess, "vmess" },
+            { EConfigType.Shadowsocks, "shadowsocks" },
+            { EConfigType.SOCKS, "socks" },
+            { EConfigType.HTTP, "http" },
+            { EConfigType.VLESS, "vless" },
+            { EConfigType.Trojan, "trojan" },
+            { EConfigType.Hysteria2, "hysteria2" },
+            { EConfigType.TUIC, "tuic" },
+            { EConfigType.WireGuard, "wireguard" }
         };
 
         public static readonly List<string> VmessSecurities =
@@ -499,6 +489,23 @@
             "file",
             "http"
         ];
+
+        public static readonly Dictionary<ECoreType, string> CoreUrls = new()
+        {
+            { ECoreType.v2fly, "v2fly/v2ray-core" },
+            { ECoreType.v2fly_v5, "v2fly/v2ray-core" },
+            { ECoreType.Xray, "XTLS/Xray-core" },
+            { ECoreType.sing_box, "SagerNet/sing-box" },
+            { ECoreType.mihomo, "MetaCubeX/mihomo" },
+            { ECoreType.hysteria, "apernet/hysteria" },
+            { ECoreType.hysteria2, "apernet/hysteria" },
+            { ECoreType.naiveproxy, "klzgrad/naiveproxy" },
+            { ECoreType.tuic, "EAimTY/tuic" },
+            { ECoreType.juicity, "juicity/juicity" },
+            { ECoreType.brook, "txthinking/brook" },
+            { ECoreType.overtls, "ShadowsocksR-Live/overtls" },
+            { ECoreType.v2rayN, "2dust/v2rayN" },
+        };
 
         #endregion const
     }

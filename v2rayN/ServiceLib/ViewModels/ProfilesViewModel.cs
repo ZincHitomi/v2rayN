@@ -1,11 +1,11 @@
+using System.Reactive;
+using System.Reactive.Linq;
+using System.Text;
 using DynamicData;
 using DynamicData.Binding;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 using Splat;
-using System.Reactive;
-using System.Reactive.Linq;
-using System.Text;
 
 namespace ServiceLib.ViewModels
 {
@@ -16,6 +16,7 @@ namespace ServiceLib.ViewModels
         private List<ProfileItem> _lstProfile;
         private string _serverFilter = string.Empty;
         private Dictionary<string, bool> _dicHeaderSort = new();
+        private SpeedtestService? _speedtestService;
 
         #endregion private prop
 
@@ -78,6 +79,7 @@ namespace ServiceLib.ViewModels
         public ReactiveCommand<Unit, Unit> RealPingServerCmd { get; }
         public ReactiveCommand<Unit, Unit> SpeedServerCmd { get; }
         public ReactiveCommand<Unit, Unit> SortServerResultCmd { get; }
+        public ReactiveCommand<Unit, Unit> RemoveInvalidServerResultCmd { get; }
 
         //servers export
         public ReactiveCommand<Unit, Unit> Export2ClientConfigCmd { get; }
@@ -196,6 +198,10 @@ namespace ServiceLib.ViewModels
             {
                 await SortServer(EServerColName.DelayVal.ToString());
             });
+            RemoveInvalidServerResultCmd = ReactiveCommand.CreateFromTask(async () =>
+            {
+                await RemoveInvalidServerResult();
+            });
             //servers export
             Export2ClientConfigCmd = ReactiveCommand.CreateFromTask(async () =>
             {
@@ -259,11 +265,6 @@ namespace ServiceLib.ViewModels
             Locator.Current.GetService<MainWindowViewModel>()?.Reload();
         }
 
-        private void UpdateSpeedtestHandler(SpeedTestResult result)
-        {
-            _updateView?.Invoke(EViewAction.DispatcherSpeedTest, result);
-        }
-
         public void SetSpeedTestResult(SpeedTestResult result)
         {
             if (Utils.IsNullOrEmpty(result.IndexId))
@@ -272,28 +273,30 @@ namespace ServiceLib.ViewModels
                 NoticeHandler.Instance.Enqueue(result.Delay);
                 return;
             }
-            var item = _profileItems.Where(it => it.IndexId == result.IndexId).FirstOrDefault();
-            if (item != null)
+            var item = _profileItems.FirstOrDefault(it => it.IndexId == result.IndexId);
+            if (item == null)
             {
-                if (Utils.IsNotEmpty(result.Delay))
-                {
-                    int.TryParse(result.Delay, out int temp);
-                    item.Delay = temp;
-                    item.DelayVal = $"{result.Delay} {Global.DelayUnit}";
-                }
-                if (Utils.IsNotEmpty(result.Speed))
-                {
-                    item.SpeedVal = $"{result.Speed} {Global.SpeedUnit}";
-                }
-                _profileItems.Replace(item, JsonUtils.DeepCopy(item));
+                return;
             }
+
+            if (Utils.IsNotEmpty(result.Delay))
+            {
+                int.TryParse(result.Delay, out var temp);
+                item.Delay = temp;
+                item.DelayVal = result.Delay ?? string.Empty;
+            }
+            if (Utils.IsNotEmpty(result.Speed))
+            {
+                item.SpeedVal = result.Speed ?? string.Empty;
+            }
+            _profileItems.Replace(item, JsonUtils.DeepCopy(item));
         }
 
         public void UpdateStatistics(ServerSpeedItem update)
         {
             try
             {
-                var item = _profileItems.Where(it => it.IndexId == update.IndexId).FirstOrDefault();
+                var item = _profileItems.FirstOrDefault(it => it.IndexId == update.IndexId);
                 if (item != null)
                 {
                     item.TodayDown = Utils.HumanFy(update.TodayDown);
@@ -425,10 +428,11 @@ namespace ServiceLib.ViewModels
                             Subid = t.Subid,
                             SubRemarks = t.SubRemarks,
                             IsActive = t.IndexId == _config.IndexId,
-                            Sort = t33 == null ? 0 : t33.Sort,
-                            Delay = t33 == null ? 0 : t33.Delay,
-                            DelayVal = t33?.Delay != 0 ? $"{t33?.Delay} {Global.DelayUnit}" : string.Empty,
-                            SpeedVal = t33?.Speed != 0 ? $"{t33?.Speed} {Global.SpeedUnit}" : string.Empty,
+                            Sort = t33?.Sort ?? 0,
+                            Delay = t33?.Delay ?? 0,
+                            Speed = t33?.Speed ?? 0,
+                            DelayVal = t33?.Delay != 0 ? $"{t33?.Delay}" : string.Empty,
+                            SpeedVal = t33?.Speed > 0 ? $"{t33?.Speed}" : t33?.Message ?? string.Empty,
                             TodayDown = t22 == null ? "" : Utils.HumanFy(t22.TodayDown),
                             TodayUp = t22 == null ? "" : Utils.HumanFy(t22.TodayUp),
                             TotalDown = t22 == null ? "" : Utils.HumanFy(t22.TotalDown),
@@ -516,7 +520,7 @@ namespace ServiceLib.ViewModels
             }
             var exists = lstSelecteds.Exists(t => t.IndexId == _config.IndexId);
 
-            await ConfigHandler.RemoveServer(_config, lstSelecteds);
+            await ConfigHandler.RemoveServers(_config, lstSelecteds);
             NoticeHandler.Instance.Enqueue(ResUI.OperationSuccess);
             if (lstSelecteds.Count == _profileItems.Count)
             {
@@ -660,6 +664,13 @@ namespace ServiceLib.ViewModels
             RefreshServers();
         }
 
+        public async Task RemoveInvalidServerResult()
+        {
+            var count = await ConfigHandler.RemoveInvalidServerResult(_config, _config.SubIndexId);
+            RefreshServers();
+            NoticeHandler.Instance.Enqueue(string.Format(ResUI.RemoveInvalidServerResultTip, count));
+        }
+
         //move server
         private async Task MoveToGroup(bool c)
         {
@@ -726,14 +737,14 @@ namespace ServiceLib.ViewModels
             {
                 return;
             }
-            //ClearTestResult();
 
-            _ = new SpeedtestService(_config, lstSelecteds, actionType, UpdateSpeedtestHandler);
+            _speedtestService ??= new SpeedtestService(_config, (SpeedTestResult result) => _updateView?.Invoke(EViewAction.DispatcherSpeedTest, result));
+            _speedtestService?.RunLoop(actionType, lstSelecteds);
         }
 
         public void ServerSpeedtestStop()
         {
-            MessageBus.Current.SendMessage("", EMsgCommand.StopSpeedtest.ToString());
+            _speedtestService?.ExitLoop();
         }
 
         private async Task Export2ClientConfigAsync(bool blClipboard)

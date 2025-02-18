@@ -243,7 +243,7 @@ namespace ServiceLib.Services
             _updateFunc?.Invoke(true, string.Format(ResUI.MsgDownloadGeoFileSuccessfully, "geo"));
         }
 
-        public async Task RunAvailabilityCheck(Action<bool, string> updateFunc)
+        public async Task<string> RunAvailabilityCheck()
         {
             var downloadHandle = new DownloadService();
             var time = await downloadHandle.RunAvailabilityCheck(null);
@@ -255,7 +255,7 @@ namespace ServiceLib.Services
                 ip = $"({ipInfo?.country_code}) {ipInfo?.ip}";
             }
 
-            updateFunc?.Invoke(false, string.Format(ResUI.TestMeOutput, time, ip));
+            return string.Format(ResUI.TestMeOutput, time, ip);
         }
 
         #region CheckUpdate private
@@ -368,6 +368,7 @@ namespace ServiceLib.Services
             try
             {
                 var coreInfo = CoreInfoHandler.Instance.GetCoreInfo(type);
+                var coreUrl = await GetUrlFromCore(coreInfo) ?? string.Empty;
                 SemanticVersion curVersion;
                 string message;
                 string? url;
@@ -379,28 +380,28 @@ namespace ServiceLib.Services
                         {
                             curVersion = await GetCoreVersion(type);
                             message = string.Format(ResUI.IsLatestCore, type, curVersion.ToVersionString("v"));
-                            url = string.Format(GetUrlFromCore(coreInfo), version.ToVersionString("v"));
+                            url = string.Format(coreUrl, version.ToVersionString("v"));
                             break;
                         }
                     case ECoreType.mihomo:
                         {
                             curVersion = await GetCoreVersion(type);
                             message = string.Format(ResUI.IsLatestCore, type, curVersion);
-                            url = string.Format(GetUrlFromCore(coreInfo), version.ToVersionString("v"));
+                            url = string.Format(coreUrl, version.ToVersionString("v"));
                             break;
                         }
                     case ECoreType.sing_box:
                         {
                             curVersion = await GetCoreVersion(type);
                             message = string.Format(ResUI.IsLatestCore, type, curVersion.ToVersionString("v"));
-                            url = string.Format(GetUrlFromCore(coreInfo), version.ToVersionString("v"), version);
+                            url = string.Format(coreUrl, version.ToVersionString("v"), version);
                             break;
                         }
                     case ECoreType.v2rayN:
                         {
                             curVersion = new SemanticVersion(Utils.GetVersionInfo());
                             message = string.Format(ResUI.IsLatestN, type, curVersion);
-                            url = string.Format(GetUrlFromCore(coreInfo), version);
+                            url = string.Format(coreUrl, version);
                             break;
                         }
                     default:
@@ -422,25 +423,36 @@ namespace ServiceLib.Services
             }
         }
 
-        private string? GetUrlFromCore(CoreInfo? coreInfo)
+        private async Task<string?> GetUrlFromCore(CoreInfo? coreInfo)
         {
             if (Utils.IsWindows())
             {
-                //Check for standalone windows .Net version
-                if (coreInfo?.CoreType == ECoreType.v2rayN
-                    && File.Exists(Path.Combine(Utils.StartupPath(), "wpfgfx_cor3.dll"))
-                    && File.Exists(Path.Combine(Utils.StartupPath(), "D3DCompiler_47_cor3.dll"))
-                   )
-                {
-                    return coreInfo?.DownloadUrlWin64?.Replace(".zip", "-SelfContained.zip");
-                }
-
-                return RuntimeInformation.ProcessArchitecture switch
+                var url = RuntimeInformation.ProcessArchitecture switch
                 {
                     Architecture.Arm64 => coreInfo?.DownloadUrlWinArm64,
                     Architecture.X64 => coreInfo?.DownloadUrlWin64,
                     _ => null,
                 };
+
+                if (coreInfo?.CoreType != ECoreType.v2rayN)
+                {
+                    return url;
+                }
+
+                //Check for standalone windows .Net version
+                if (File.Exists(Path.Combine(Utils.GetBaseDirectory(), "wpfgfx_cor3.dll"))
+                    && File.Exists(Path.Combine(Utils.GetBaseDirectory(), "D3DCompiler_47_cor3.dll")))
+                {
+                    return url?.Replace(".zip", "-SelfContained.zip");
+                }
+
+                //Check for avalonia desktop windows version
+                if (File.Exists(Path.Combine(Utils.GetBaseDirectory(), "libHarfBuzzSharp.dll")))
+                {
+                    return url?.Replace(".zip", "-desktop.zip");
+                }
+
+                return url;
             }
             else if (Utils.IsLinux())
             {

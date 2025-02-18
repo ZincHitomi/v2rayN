@@ -69,7 +69,7 @@ namespace ServiceLib.Handler.SysProxy
                 }
                 return result;
             }
-            catch (Exception ex)
+            catch
             {
                 SetProxyFallback(strProxy, exceptions, type);
                 return false;
@@ -176,7 +176,8 @@ namespace ServiceLib.Handler.SysProxy
             }
 
             // FREE the data ASAP
-            if (list.szConnection != nint.Zero) Marshal.FreeHGlobal(list.szConnection); // release mem 3
+            if (list.szConnection != nint.Zero)
+                Marshal.FreeHGlobal(list.szConnection); // release mem 3
             if (optionCount > 1)
             {
                 Marshal.FreeHGlobal(options[1].m_Value.m_StringPtr); // release mem 1

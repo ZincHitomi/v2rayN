@@ -1,9 +1,9 @@
-﻿using DynamicData.Binding;
+using System.Reactive;
+using System.Text;
+using DynamicData.Binding;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 using Splat;
-using System.Reactive;
-using System.Text;
 
 namespace ServiceLib.ViewModels
 {
@@ -225,19 +225,22 @@ namespace ServiceLib.ViewModels
         private async Task AddServerViaClipboard()
         {
             var service = Locator.Current.GetService<MainWindowViewModel>();
-            if (service != null) await service.AddServerViaClipboardAsync(null);
+            if (service != null)
+                await service.AddServerViaClipboardAsync(null);
         }
 
         private async Task AddServerViaScan()
         {
             var service = Locator.Current.GetService<MainWindowViewModel>();
-            if (service != null) await service.AddServerViaScanAsync();
+            if (service != null)
+                await service.AddServerViaScanAsync();
         }
 
         private async Task UpdateSubscriptionProcess(bool blProxy)
         {
             var service = Locator.Current.GetService<MainWindowViewModel>();
-            if (service != null) await service.UpdateSubscriptionProcess("", blProxy);
+            if (service != null)
+                await service.UpdateSubscriptionProcess("", blProxy);
         }
 
         public async Task RefreshServersBiz()
@@ -308,11 +311,11 @@ namespace ServiceLib.ViewModels
             {
                 return;
             }
-            await (new UpdateService()).RunAvailabilityCheck(async (bool success, string msg) =>
-            {
-                NoticeHandler.Instance.SendMessageEx(msg);
-                _updateView?.Invoke(EViewAction.DispatcherServerAvailability, msg);
-            });
+
+            var msg = await (new UpdateService()).RunAvailabilityCheck();
+
+            NoticeHandler.Instance.SendMessageEx(msg);
+            _updateView?.Invoke(EViewAction.DispatcherServerAvailability, msg);
         }
 
         public void TestServerAvailabilityResult(string msg)

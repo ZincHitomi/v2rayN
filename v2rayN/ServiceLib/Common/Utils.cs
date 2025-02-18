@@ -1,5 +1,3 @@
-using CliWrap;
-using CliWrap.Buffered;
 using System.Collections.Specialized;
 using System.Diagnostics;
 using System.Net;
@@ -10,62 +8,14 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Security.Principal;
 using System.Text;
+using CliWrap;
+using CliWrap.Buffered;
 
 namespace ServiceLib.Common
 {
     public class Utils
     {
         private static readonly string _tag = "Utils";
-
-        #region 资源操作
-
-        /// <summary>
-        /// 获取嵌入文本资源
-        /// </summary>
-        /// <param name="res"></param>
-        /// <returns></returns>
-        public static string GetEmbedText(string res)
-        {
-            var result = string.Empty;
-
-            try
-            {
-                var assembly = Assembly.GetExecutingAssembly();
-                using var stream = assembly.GetManifestResourceStream(res);
-                ArgumentNullException.ThrowIfNull(stream);
-                using StreamReader reader = new(stream);
-                result = reader.ReadToEnd();
-            }
-            catch (Exception ex)
-            {
-                Logging.SaveLog(_tag, ex);
-            }
-
-            return result;
-        }
-
-        /// <summary>
-        /// 取得存储资源
-        /// </summary>
-        /// <returns></returns>
-        public static string? LoadResource(string? res)
-        {
-            try
-            {
-                if (File.Exists(res))
-                {
-                    return File.ReadAllText(res);
-                }
-            }
-            catch (Exception ex)
-            {
-                Logging.SaveLog(_tag, ex);
-            }
-
-            return null;
-        }
-
-        #endregion 资源操作
 
         #region 转换函数
 
@@ -176,7 +126,8 @@ namespace ServiceLib.Common
         {
             try
             {
-                if (plainText.IsNullOrEmpty()) return "";
+                if (plainText.IsNullOrEmpty())
+                    return "";
                 plainText = plainText.Trim()
                     .Replace(Environment.NewLine, "")
                     .Replace("\n", "")
@@ -372,7 +323,8 @@ namespace ServiceLib.Common
 
         public static bool IsBase64String(string? plainText)
         {
-            if (plainText.IsNullOrEmpty()) return false;
+            if (plainText.IsNullOrEmpty())
+                return false;
             var buffer = new Span<byte>(new byte[plainText.Length]);
             return Convert.TryFromBase64String(plainText, buffer, out var _);
         }
@@ -462,9 +414,12 @@ namespace ServiceLib.Common
             if (IPAddress.TryParse(ip, out var address))
             {
                 var ipBytes = address.GetAddressBytes();
-                if (ipBytes[0] == 10) return true;
-                if (ipBytes[0] == 172 && ipBytes[1] >= 16 && ipBytes[1] <= 31) return true;
-                if (ipBytes[0] == 192 && ipBytes[1] == 168) return true;
+                if (ipBytes[0] == 10)
+                    return true;
+                if (ipBytes[0] == 172 && ipBytes[1] >= 16 && ipBytes[1] <= 31)
+                    return true;
+                if (ipBytes[0] == 192 && ipBytes[1] == 168)
+                    return true;
             }
 
             return false;
@@ -478,10 +433,22 @@ namespace ServiceLib.Common
         {
             try
             {
-                var ipProperties = IPGlobalProperties.GetIPGlobalProperties();
-                var ipEndPoints = ipProperties.GetActiveTcpListeners();
-                //var lstIpEndPoints = new List<IPEndPoint>(IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpListeners());
-                return ipEndPoints.Any(endPoint => endPoint.Port == port);
+                List<IPEndPoint> lstIpEndPoints = new();
+                List<TcpConnectionInformation> lstTcpConns = new();
+
+                lstIpEndPoints.AddRange(IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpListeners());
+                lstIpEndPoints.AddRange(IPGlobalProperties.GetIPGlobalProperties().GetActiveUdpListeners());
+                lstTcpConns.AddRange(IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpConnections());
+
+                if (lstIpEndPoints?.FindIndex(it => it.Port == port) >= 0)
+                {
+                    return true;
+                }
+
+                if (lstTcpConns?.FindIndex(it => it.LocalEndPoint.Port == port) >= 0)
+                {
+                    return true;
+                }
             }
             catch (Exception ex)
             {
@@ -604,9 +571,11 @@ namespace ServiceLib.Common
 
                     foreach (var host in hostsList)
                     {
-                        if (host.StartsWith("#")) continue;
+                        if (host.StartsWith("#"))
+                            continue;
                         var hostItem = host.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
-                        if (hostItem.Length != 2) continue;
+                        if (hostItem.Length != 2)
+                            continue;
                         systemHosts.Add(hostItem.Last(), hostItem.First());
                     }
                 }
@@ -829,6 +798,24 @@ namespace ServiceLib.Common
             }
         }
 
+        public static string GetBinConfigPath(string filename = "")
+        {
+            var tempPath = Path.Combine(StartupPath(), "binConfigs");
+            if (!Directory.Exists(tempPath))
+            {
+                Directory.CreateDirectory(tempPath);
+            }
+
+            if (Utils.IsNullOrEmpty(filename))
+            {
+                return tempPath;
+            }
+            else
+            {
+                return Path.Combine(tempPath, filename);
+            }
+        }
+
         #endregion TempPath
 
         #region Platform
@@ -875,8 +862,10 @@ namespace ServiceLib.Common
 
         public static async Task<string?> SetLinuxChmod(string? fileName)
         {
-            if (fileName.IsNullOrEmpty()) return null;
-            if (fileName.Contains(' ')) fileName = fileName.AppendQuotes();
+            if (fileName.IsNullOrEmpty())
+                return null;
+            if (fileName.Contains(' '))
+                fileName = fileName.AppendQuotes();
             //File.SetUnixFileMode(fileName, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
             var arg = new List<string>() { "-c", $"chmod +x {fileName}" };
             return await GetCliWrapOutput("/bin/bash", arg);

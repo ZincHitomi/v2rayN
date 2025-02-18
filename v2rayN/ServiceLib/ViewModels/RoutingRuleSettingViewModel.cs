@@ -1,9 +1,9 @@
-﻿using DynamicData.Binding;
-using ReactiveUI;
-using ReactiveUI.Fody.Helpers;
 using System.Reactive;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using DynamicData.Binding;
+using ReactiveUI;
+using ReactiveUI.Fody.Helpers;
 
 namespace ServiceLib.ViewModels
 {
@@ -257,7 +257,7 @@ namespace ServiceLib.ViewModels
                 return;
             }
 
-            var result = Utils.LoadResource(fileName);
+            var result = EmbedUtils.LoadResource(fileName);
             if (Utils.IsNullOrEmpty(result))
             {
                 return;

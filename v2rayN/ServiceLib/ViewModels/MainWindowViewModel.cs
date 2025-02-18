@@ -1,7 +1,7 @@
+using System.Reactive;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 using Splat;
-using System.Reactive;
 
 namespace ServiceLib.ViewModels
 {
@@ -287,14 +287,15 @@ namespace ServiceLib.ViewModels
             try
             {
                 Logging.SaveLog("MyAppExitAsync Begin");
+
+                await SysProxyHandler.UpdateSysProxy(_config, true);
                 MessageBus.Current.SendMessage("", EMsgCommand.AppExit.ToString());
 
                 await ConfigHandler.SaveConfig(_config);
-                await SysProxyHandler.UpdateSysProxy(_config, true);
                 await ProfileExHandler.Instance.SaveTo();
                 await StatisticsHandler.Instance.SaveTo();
-                StatisticsHandler.Instance.Close();
                 await CoreHandler.Instance.CoreStop();
+                StatisticsHandler.Instance.Close();
 
                 Logging.SaveLog("MyAppExitAsync End");
             }
@@ -570,7 +571,8 @@ namespace ServiceLib.ViewModels
             {
                 Locator.Current.GetService<ClashProxiesViewModel>()?.ProxiesReload();
             }
-            else { TabMainSelectedIndex = 0; }
+            else
+            { TabMainSelectedIndex = 0; }
         }
 
         private async Task LoadCore()

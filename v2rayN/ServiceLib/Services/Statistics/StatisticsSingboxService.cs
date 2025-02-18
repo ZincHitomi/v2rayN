@@ -1,4 +1,4 @@
-﻿using System.Net.WebSockets;
+using System.Net.WebSockets;
 using System.Text;
 
 namespace ServiceLib.Services.Statistics
@@ -21,7 +21,7 @@ namespace ServiceLib.Services.Statistics
             Task.Run(Run);
         }
 
-        private async void Init()
+        private async Task Init()
         {
             await Task.Delay(5000);
 
@@ -53,9 +53,9 @@ namespace ServiceLib.Services.Statistics
             }
         }
 
-        private async void Run()
+        private async Task Run()
         {
-            Init();
+            await Init();
 
             while (!_exitFlag)
             {
@@ -73,7 +73,7 @@ namespace ServiceLib.Services.Statistics
                         {
                             webSocket.Abort();
                             webSocket = null;
-                            Init();
+                            await Init();
                             continue;
                         }
 
@@ -109,7 +109,8 @@ namespace ServiceLib.Services.Statistics
 
         private void ParseOutput(string source, out ulong up, out ulong down)
         {
-            up = 0; down = 0;
+            up = 0;
+            down = 0;
             try
             {
                 var trafficItem = JsonUtils.Deserialize<TrafficItem>(source);

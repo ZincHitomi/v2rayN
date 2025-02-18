@@ -1,7 +1,7 @@
-﻿using Avalonia.Controls;
+using System.Reactive.Disposables;
+using Avalonia.Controls;
 using Avalonia.ReactiveUI;
 using ReactiveUI;
-using System.Reactive.Disposables;
 
 namespace v2rayN.Desktop.Views
 {
@@ -66,7 +66,11 @@ namespace v2rayN.Desktop.Views
                 cmbCoreType6.Items.Add(it);
             });
 
-            for (int i = 2; i <= 6; i++)
+            for (var i = 2; i <= 8; i++)
+            {
+                cmbMixedConcurrencyCount.Items.Add(i);
+            }
+            for (var i = 2; i <= 6; i++)
             {
                 cmbSpeedTestTimeout.Items.Add(i * 5);
             }
@@ -139,7 +143,7 @@ namespace v2rayN.Desktop.Views
                 this.Bind(ViewModel, vm => vm.SpeedTestTimeout, v => v.cmbSpeedTestTimeout.SelectedValue).DisposeWith(disposables);
                 this.Bind(ViewModel, vm => vm.SpeedTestUrl, v => v.cmbSpeedTestUrl.SelectedValue).DisposeWith(disposables);
                 this.Bind(ViewModel, vm => vm.SpeedPingTestUrl, v => v.cmbSpeedPingTestUrl.SelectedValue).DisposeWith(disposables);
-                this.Bind(ViewModel, vm => vm.SpeedTestPageSize, v => v.txtSpeedTestPageSize.Text).DisposeWith(disposables);
+                this.Bind(ViewModel, vm => vm.MixedConcurrencyCount, v => v.cmbMixedConcurrencyCount.SelectedValue).DisposeWith(disposables);
                 this.Bind(ViewModel, vm => vm.SubConvertUrl, v => v.cmbSubConvertUrl.SelectedValue).DisposeWith(disposables);
                 this.Bind(ViewModel, vm => vm.MainGirdOrientation, v => v.cmbMainGirdOrientation.SelectedIndex).DisposeWith(disposables);
                 this.Bind(ViewModel, vm => vm.GeoFileSourceUrl, v => v.cmbGetFilesSourceUrl.SelectedValue).DisposeWith(disposables);
@@ -175,13 +179,6 @@ namespace v2rayN.Desktop.Views
             {
                 txbSettingsExceptionTip.IsVisible = false;
                 panSystemProxyAdvanced.IsVisible = false;
-            }
-
-            if (Utils.IsOSX())
-            {
-                tbAutoRun.IsVisible = false;
-                togAutoRun.IsVisible = false;
-                //TODO
             }
         }
 

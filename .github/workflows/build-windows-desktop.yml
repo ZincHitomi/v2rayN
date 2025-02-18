@@ -1,4 +1,4 @@
-name: release Windows
+name: release Windows desktop (Avalonia UI)
 
 on:
   workflow_dispatch:
@@ -15,7 +15,6 @@ env:
   OutputArchArm: "windows-arm64"
   OutputPath64:  "${{ github.workspace }}/v2rayN/Release/windows-64"
   OutputPathArm64:  "${{ github.workspace }}/v2rayN/Release/windows-arm64"
-  OutputPath64Sc:  "${{ github.workspace }}/v2rayN/Release/windows-64-SelfContained"
 
 jobs:
   build:
@@ -37,30 +36,28 @@ jobs:
     - name: Build
       run: |
         cd v2rayN 
-        dotnet publish ./v2rayN/v2rayN.csproj     -c Release -r win-x64   --self-contained=false -p:EnableWindowsTargeting=true -o $OutputPath64
-        dotnet publish ./v2rayN/v2rayN.csproj     -c Release -r win-arm64 --self-contained=false -p:EnableWindowsTargeting=true -o $OutputPathArm64
-        dotnet publish ./v2rayN/v2rayN.csproj     -c Release -r win-x64   --self-contained=true  -p:EnableWindowsTargeting=true -o $OutputPath64Sc
-        dotnet publish ./AmazTool/AmazTool.csproj -c Release -r win-x64   --self-contained=false -p:EnableWindowsTargeting=true -o $OutputPath64
-        dotnet publish ./AmazTool/AmazTool.csproj -c Release -r win-arm64 --self-contained=false -p:EnableWindowsTargeting=true -o $OutputPathArm64
-        dotnet publish ./AmazTool/AmazTool.csproj -c Release -r win-x64   --self-contained=true  -p:EnableWindowsTargeting=true -p:PublishTrimmed=true -o $OutputPath64Sc
+        dotnet publish ./v2rayN.Desktop/v2rayN.Desktop.csproj -c Release -r win-x64   --self-contained=true -p:EnableWindowsTargeting=true -o $OutputPath64
+        dotnet publish ./v2rayN.Desktop/v2rayN.Desktop.csproj -c Release -r win-arm64 --self-contained=true -p:EnableWindowsTargeting=true -o $OutputPathArm64
+        dotnet publish ./AmazTool/AmazTool.csproj             -c Release -r win-x64   --self-contained=true -p:EnableWindowsTargeting=true -p:PublishTrimmed=true -o $OutputPath64
+        dotnet publish ./AmazTool/AmazTool.csproj             -c Release -r win-arm64 --self-contained=true -p:EnableWindowsTargeting=true -p:PublishTrimmed=true -o $OutputPathArm64
 
-  
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4.6.0
       with:
-        name: v2rayN-windows
+        name: v2rayN-windows-desktop
         path: |
           ${{ github.workspace }}/v2rayN/Release/windows*
-    
+
     # release zip archive
     - name: Package release zip archive
       if: github.event.inputs.release_tag != ''
       run: |
         chmod 755 package-release-zip.sh
         ./package-release-zip.sh $OutputArch $OutputPath64
+        mv "v2rayN-${OutputArch}.zip" "v2rayN-${OutputArch}-desktop.zip"
         ./package-release-zip.sh $OutputArchArm $OutputPathArm64
-        ./package-release-zip.sh "windows-64-SelfContained" $OutputPath64Sc
-    
+        mv "v2rayN-${OutputArchArm}.zip" "v2rayN-${OutputArchArm}-desktop.zip"
+
     - name: Upload zip archive to release
       uses: svenstaro/upload-release-action@v2
       if: github.event.inputs.release_tag != ''
